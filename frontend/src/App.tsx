@@ -1,3 +1,4 @@
+import {readStartupEnabled} from "./services/startupPreferences";
 import { AnimatePresence, MotionConfig, motion } from "motion/react";
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
@@ -53,7 +54,7 @@ export function App() {
   const launchLock = useRef(false);
   const initialScan = useRef<ReturnType<typeof libraryClient.scan> | null>(null);
   const initialSystemInfo = useRef<ReturnType<typeof libraryClient.system> | null>(null);
-  const [startupOpen, setStartupOpen] = useState(() => Boolean(window.nexusDesktop) || new URLSearchParams(window.location.search).get("intro") === "1");
+  const [startupOpen, setStartupOpen] = useState(() => (Boolean(window.nexusDesktop) && readStartupEnabled()) || new URLSearchParams(window.location.search).get("intro") === "1");
   const closeStartup = useCallback(() => setStartupOpen(false), []);
   const [notice, setNotice] = useState<string | null>(null);
   const [onboardingOpen, setOnboardingOpen] = useState(() => new URLSearchParams(window.location.search).get("intro") !== "1" && localStorage.getItem("nexus.onboarding.complete.v1") !== "true");
@@ -148,10 +149,10 @@ export function App() {
   }, []);
 
   useEffect(() => {
-    if (onboardingOpen || location.pathname !== "/") return;
+    if (onboardingOpen || startupOpen || location.pathname !== "/") return;
     const timer = window.setTimeout(() => document.querySelector<HTMLButtonElement>(`.game-tile[data-selected="true"]`)?.focus(), 220);
     return () => window.clearTimeout(timer);
-  }, [location.pathname, onboardingOpen]);
+  }, [location.pathname, onboardingOpen, startupOpen, selectedGameId]);
 
   const launch = async (requestedGame = selectedGame) => {
     if (!requestedGame || launchLock.current) { if (!requestedGame) setNotice(t("home.noSelected")); return; }
@@ -219,7 +220,7 @@ export function App() {
                 <Route path="/library" element={<LibraryScreen />} />
                 <Route path="/search" element={<SearchScreen />} />
                 <Route path="/game/:gameId" element={<GameDetailScreen onLaunch={() => void launch()} />} />
-                <Route path="/settings" element={<SettingsScreen onReplayOnboarding={replayOnboarding} />} />
+                <Route path="/settings" element={<SettingsScreen onReplayOnboarding={replayOnboarding} onReplayStartup={()=>setStartupOpen(true)} />} />
                 <Route path="/extensions" element={<ExtensionsScreen />} />
                 <Route path="/downloads" element={<Navigate to="/extensions" replace />} />
                 <Route path="/captures" element={<CapturesScreen />} />

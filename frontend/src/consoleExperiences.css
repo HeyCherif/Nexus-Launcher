@@ -319,3 +319,9 @@
 .game-detail-console .game-detail__technical-info summary { cursor:pointer; }
 .game-detail-console .game-detail__technical-info .game-detail__technical { margin-top:.5rem; padding-top:.5rem; }
 .game-detail-console .game-activity { background:var(--glass-surface); border:1px solid var(--glass-edge); box-shadow:var(--glass-shadow); backdrop-filter:blur(24px) saturate(145%); }
+.settings-startup-actions { display:flex; flex-wrap:wrap; gap:.8rem; padding:1rem 0; }
+.startup-toggle { display:flex; align-items:center; gap:.6rem; padding:.55rem .9rem; border:1px solid var(--glass-edge); border-radius:999px; background:var(--glass-command); color:var(--color-foreground); }
+.startup-toggle > span { width:.6rem; height:.6rem; border-radius:50%; background:var(--color-muted); }
+.startup-toggle[aria-checked=true] > span { background:var(--color-focus); box-shadow:0 0 10px var(--color-focus); }
+.startup-toggle > strong { font-size:.8rem; font-weight:500; }
+.startup-toggle:focus-visible { outline:2px solid var(--color-focus); outline-offset:4px; }

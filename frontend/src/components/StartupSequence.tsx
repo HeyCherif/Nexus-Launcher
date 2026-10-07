@@ -10,6 +10,14 @@ export function StartupSequence({ onComplete }: { onComplete: () => void }) {
   const film = `/assets/startup/nexus-startup-${locale}-v1.mp4`;
   const poster = `/assets/startup/nexus-startup-${locale}-v1-poster.jpg`;
   const video = useRef<HTMLVideoElement>(null);
+  const skipButton = useRef<HTMLButtonElement>(null);
+  useEffect(() => {
+    const origin = document.activeElement;
+    skipButton.current?.focus();
+    return () => {
+      if (origin instanceof HTMLElement && origin.isConnected && origin.matches("button, a[href], input, [tabindex]") && !origin.closest("[inert]")) origin.focus();
+    };
+  }, []);
   const finished = useRef(false);
   const [failed, setFailed] = useState(false);
   const preferences = sfx.getPreferences();
@@ -64,7 +72,7 @@ export function StartupSequence({ onComplete }: { onComplete: () => void }) {
     <motion.div className="startup-sequence" data-mode={reducedMotion ? "still" : "film"} initial={false} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : .55 }} aria-label={t("onboarding.label")}>
       {failed ? <div className="startup-sequence__identity"><div className="startup-sequence__emblem"><img src="/assets/brand/nexus-mark.png" alt="" /></div><strong>NEXUS LAUNCHER</strong></div> : reducedMotion ? <img className="startup-sequence__film" src={poster} alt="Nexus Launcher" /> : <video ref={video} className="startup-sequence__film" src={film} playsInline preload="auto" muted={muted} onEnded={finish} onError={() => setFailed(true)} aria-hidden="true" />}
       {!reducedMotion && !failed && muted && !preferences.muted ? <button className="startup-sequence__sound" type="button" onClick={() => setMuted(false)}>{t("home.startupSound")}</button> : null}
-      <button className="startup-sequence__skip" type="button" onClick={finish}>{t("onboarding.skip")} <kbd>↵</kbd></button>
+      <button ref={skipButton} className="startup-sequence__skip" type="button" onClick={finish}>{t("onboarding.skip")} <kbd>↵</kbd></button>
     </motion.div>
   );
 }

@@ -1,3 +1,4 @@
+import {readStartupEnabled,writeStartupEnabled} from "../services/startupPreferences";
 import { ArrowsClockwise, Database, DownloadSimple, Eye, FilmSlate, FolderOpen, FolderSimplePlus, GameController, HardDrives, Images, Link, MoonStars, Palette, SlidersHorizontal, Translate } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
@@ -30,7 +31,9 @@ function SettingsRow({ icon, title, description, children }: { icon: ReactNode; 
   return <div className="settings-row"><span className="settings-row__icon">{icon}</span><span><strong>{title}</strong><small>{description}</small></span>{children}</div>;
 }
 
-export function SettingsScreen({ onReplayOnboarding }: { onReplayOnboarding: () => void }) {
+export function SettingsScreen({ onReplayOnboarding, onReplayStartup }: { onReplayOnboarding: () => void; onReplayStartup: () => void }) {
+  const [startupEnabled,setStartupEnabled]=useState(readStartupEnabled);
+  const [startupError,setStartupError]=useState(false);
   const { t, i18n } = useTranslation();
   const prefersReducedMotion = useReducedMotion();
   const [audioPreferences, setAudioPreferences] = useState(() => sfx.getPreferences());
@@ -143,7 +146,9 @@ export function SettingsScreen({ onReplayOnboarding }: { onReplayOnboarding: () 
             {section === "interface" ? <>
               <SettingsRow icon={<Palette size={22} />} title={t("settings.themeTitle")} description={t("settings.themeDesc")}><div className="segmented-control">{(["obsidienne", "solaris"] as ThemeId[]).map((id) => <button data-selected={theme === id} key={id} onClick={() => setTheme(id)} type="button">{t(`system.${id}`)}</button>)}</div></SettingsRow>
               <SettingsRow icon={<Translate size={22} />} title={t("settings.languageTitle")} description={t("settings.languageDesc")}><div className="segmented-control"><button data-selected={locale === "fr"} onClick={() => chooseLocale("fr")} type="button">FR</button><button data-selected={locale === "en"} onClick={() => chooseLocale("en")} type="button">EN</button></div></SettingsRow>
-              <button className="settings-replay" onClick={onReplayOnboarding} type="button">{t("settings.replay")}</button>
+              <SettingsRow icon={<FilmSlate size={22}/>} title={locale==='fr'?'Introduction au démarrage':'Startup introduction'} description={locale==='fr'?'Le film Nexus à l’ouverture.':'Play the Nexus film when opening the app.'}><button className="startup-toggle" role="switch" aria-checked={startupEnabled} aria-label={locale==='fr'?'Introduction au démarrage':'Startup introduction'} onClick={()=>{try{writeStartupEnabled(!startupEnabled);setStartupEnabled(!startupEnabled);setStartupError(false);}catch{setStartupError(true);}}} type="button"><span/><strong>{locale==='fr'?(startupEnabled?'Activée':'Désactivée'):(startupEnabled?'On':'Off')}</strong></button></SettingsRow>
+              {startupError?<p role="status">{locale==='fr'?'Impossible d’enregistrer le réglage.':'Could not save this setting.'}</p>:null}
+              <div className="settings-startup-actions"><button className="screen-tool" data-startup-replay type="button" onClick={onReplayStartup}><FilmSlate size={18}/>{t('settings.replay')}</button><button className="screen-tool" onClick={onReplayOnboarding} type="button"><SlidersHorizontal size={18}/>{locale==='fr'?'Reconfigurer Nexus':'Set up Nexus again'}</button></div>
             </> : null}
 
             {section === "libraries" ? <>
