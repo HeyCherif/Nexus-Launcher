@@ -144,3 +144,39 @@
  .onboarding::before { display: none; }
 }
 @media (prefers-reduced-motion: reduce) { .game-detail-visual .game-detail__cover { transform: none; } }
+
+/* The extension library keeps optional features in one console destination. */
+.extensions-screen { padding-bottom: 2rem; }
+.extensions-screen .screen-heading { align-items: center; }
+.extensions-emblem { display: grid; place-items: center; width: 5rem; height: 5rem; border-radius: 24px; border: 1px solid var(--glass-edge); background: var(--glass-command); color: var(--color-focus); box-shadow: inset 0 1px 0 var(--glass-highlight); }
+.extensions-toolbar { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 1rem; margin: 2rem 0 1rem; }
+.extensions-filters { display: flex; gap: .35rem; flex-wrap: wrap; }
+.extensions-filters button { border: 1px solid transparent; border-radius: 999px; padding: .65rem 1rem; color: var(--color-muted); background: transparent; cursor: pointer; }
+.extensions-filters button[aria-pressed=true] { color: var(--color-foreground); border-color: var(--glass-edge); background: var(--glass-command); box-shadow: inset 0 1px 0 var(--glass-highlight); }
+.extensions-search { display: flex; align-items: center; gap: .7rem; min-width: 0; padding: .7rem 1rem; border: 1px solid var(--glass-edge); border-radius: 999px; background: var(--glass-command); color: var(--color-muted); }
+.extensions-search input { width: 14rem; max-width: 100%; border: 0; outline: 0; background: transparent; color: var(--color-foreground); font: inherit; font-size: .85rem; min-width: 0; }
+.extensions-search:focus-within { outline: 2px solid var(--color-focus); outline-offset: 3px; }
+.extensions-preview { font-size: .75rem; color: var(--color-muted); margin-bottom: 1.8rem; }
+.extensions-grid { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1.3rem; }
+.extensions-grid > div { min-width: 0; display: flex; flex-direction: column; gap: .65rem; }
+.extensions-grid > [hidden] { display: none !important; }
+.extension-category { font-size: .6rem; text-transform: uppercase; letter-spacing: .18em; color: var(--color-focus); padding-left: .3rem; }
+.extensions-grid .nexus-plugin-card { margin: 0; max-width: none; flex: 1; grid-template-columns: 3.5rem minmax(0,1fr); padding: 1.5rem; gap: 1rem; align-content: start; align-items: start; }
+.extensions-grid .nexus-plugin-heading h2 { color: var(--color-foreground); font-size: 1.35rem; font-weight: 450; }
+.extensions-grid .nexus-plugin-heading p, .extensions-grid .nexus-plugin-heading small, .extensions-grid summary { color: var(--color-muted); }
+.extensions-grid .capture-actions { grid-column: 1 / -1; flex-wrap: wrap; padding-top: .4rem; }
+.extensions-grid .nexus-plugin-symbol { color: var(--color-focus); }
+.extensions-grid .nexus-plugin-symbol svg { color: inherit; }
+.extensions-grid .nexus-plugin-card details, .extensions-grid .nexus-plugin-card progress, .extensions-grid .nexus-plugin-card .plugin-error, .extensions-grid .saves-plugin-settings { grid-column: 1 / -1; }
+.extensions-grid .extension-notifications { display: block; }
+.extension-notifications > header h2 { font-size: 1.35rem; font-weight: 450; margin: .4rem 0 1.2rem; }
+.extension-notifications .screen-kicker { font-size: .55rem; }
+.extension-notifications .console-notifications { margin: 0; padding: 0; background: transparent; border: 0; box-shadow: none; }
+.extension-notifications .console-feature-row { flex-wrap: wrap; }
+.extension-notifications .console-feature-copy { min-width: 0; }
+.extensions-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1.8rem; }
+.extensions-footer p { margin: 0; font-size: .75rem; color: var(--color-muted); }
+.extensions-footer .screen-tool { display: inline-flex; align-items: center; gap: .5rem; text-decoration: none; }
+.extensions-empty { display: grid; justify-items: center; gap: .8rem; padding: 3rem; border: 1px solid var(--glass-edge); border-radius: 24px; background: var(--glass-command); color: var(--color-muted); }
+@media(max-width:1000px) { .extensions-grid { grid-template-columns: 1fr; } }
+@media(max-width:640px) { .extensions-emblem { display: none; } .extensions-toolbar { margin-top: 1.4rem; } .extensions-search { width: 100%; } .extensions-search input { width: 100%; } .extensions-filters button { padding: .55rem .7rem; font-size: .75rem; } .extensions-grid .nexus-plugin-card { padding: 1.1rem; } }

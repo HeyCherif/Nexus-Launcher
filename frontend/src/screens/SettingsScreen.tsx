@@ -2,7 +2,8 @@ import { ArrowsClockwise, Database, DownloadSimple, Eye, FilmSlate, FolderOpen, 
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useState, type ReactNode } from "react";
 import { useTranslation } from "react-i18next";
-import { useSearchParams } from "react-router-dom";
+import { Link as RouterLink, useSearchParams } from "react-router-dom";
+import { extensionsCopy } from '../extensionsCopy';
 import { useNexusStore } from "../state/useNexusStore";
 import { libraryClient } from "../services/libraryClient";
 import type { Locale, ThemeId } from "../types";
@@ -175,7 +176,7 @@ export function SettingsScreen({ onReplayOnboarding }: { onReplayOnboarding: () 
 
             {section === "downloads" ? <>
               <SettingsRow icon={<FolderOpen size={22} />} title={t("settings.activeLibrary")} description={libraryRoot || t("settings.loadingConfig")}><span className="provider-tag">{t("settings.local")}</span></SettingsRow>
-              <SettingsRow icon={<DownloadSimple size={22} />} title={t("settings.transfers")} description={t("settings.transfersDesc")}><span className="provider-tag">0</span></SettingsRow>
+              <SettingsRow icon={<DownloadSimple size={22} />} title={extensionsCopy[locale].title} description={extensionsCopy[locale].settingsDesc}><RouterLink className="screen-tool" to="/extensions">{extensionsCopy[locale].settings}</RouterLink></SettingsRow>
               <SettingsRow icon={<Images size={22} />} title={t("settings.remoteArtwork")} description={t("settings.remoteArtworkDesc")}><span className="provider-tag">{t("settings.online")}</span></SettingsRow>
             </> : null}
 

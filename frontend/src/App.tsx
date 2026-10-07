@@ -26,7 +26,7 @@ const LibraryScreen = lazy(() => import("./screens/LibraryScreen").then((module)
 const SearchScreen = lazy(() => import("./screens/SearchScreen").then((module) => ({ default: module.SearchScreen })));
 const SettingsScreen = lazy(() => import("./screens/SettingsScreen").then((module) => ({ default: module.SettingsScreen })));
 const GameDetailScreen = lazy(() => import("./screens/GameDetailScreen").then((module) => ({ default: module.GameDetailScreen })));
-const DownloadsScreen = lazy(() => import("./screens/DownloadsScreen").then((module) => ({ default: module.DownloadsScreen })));
+const ExtensionsScreen = lazy(() => import("./screens/ExtensionsScreen").then((module) => ({ default: module.ExtensionsScreen })));
 const CapturesScreen = lazy(() => import("./screens/CapturesScreen").then((module) => ({ default: module.CapturesScreen })));
 
 export function App() {
@@ -220,7 +220,8 @@ export function App() {
                 <Route path="/search" element={<SearchScreen />} />
                 <Route path="/game/:gameId" element={<GameDetailScreen onLaunch={() => void launch()} />} />
                 <Route path="/settings" element={<SettingsScreen onReplayOnboarding={replayOnboarding} />} />
-                <Route path="/downloads" element={<DownloadsScreen />} />
+                <Route path="/extensions" element={<ExtensionsScreen />} />
+                <Route path="/downloads" element={<Navigate to="/extensions" replace />} />
                 <Route path="/captures" element={<CapturesScreen />} />
                 <Route path="*" element={<Navigate to="/" replace />} />
               </Routes>

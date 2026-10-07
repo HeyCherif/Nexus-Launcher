@@ -163,3 +163,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Onboarding pairs folder choice with real read-only device and installed launcher checks. Keep unavailable values honest; do not connect accounts, install modules or send hardware telemetry automatically.
 - Preserve the console liquid glass atmosphere, short FR/EN copy, directional opacity/transform motion, and keyboard/controller focus. Game details lead with artwork and launch actions; show real playtime/progress, with technical metadata secondary.
 - Continue locally before another release. Account publishing is deferred while automatic approval review rejects the public upstream client constants; do not bypass that review.
+
+## Extensions destination (2026-10-07)
+
+- The sixth primary destination is Extensions (/extensions), with a puzzle icon and legacy /downloads redirect. Keep controller route order and six sections.
+- Use one glass catalog for optional Replay, Saves and Steam Achievement Notifier; installation is explicit and keeps existing validated backends. Filters/search must keep active operations mounted and never install on viewing. No fake availability, progress, sizes or installed status.
+- Keep concise FR/EN copy, semantic Solaris colours, narrow layouts, and existing Capture/Save/account entry points.
