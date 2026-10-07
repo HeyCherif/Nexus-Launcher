@@ -11,8 +11,8 @@ const EPIC_BASIC = Buffer.from(`${EPIC_CLIENT}:daafbccc737745039dffe53d94fc76cf`
 const GOG_SECRET = '9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9';
 class StoreRequestError extends Error { constructor(status) { super('Store request failed.'); this.status = status; } }
 export class StoreAccounts {
-  constructor(userData, safeStorage, { fetch = globalThis.fetch, login, now = () => Date.now() } = {}) {
-    this.root = userData; this.storage = safeStorage; this.fetch = fetch; this.login = login; this.now = now;
+  constructor(userData, safeStorage, { fetch = globalThis.fetch, login, openClient = async () => false, now = () => Date.now() } = {}) {
+    this.root = userData; this.storage = safeStorage; this.fetch = fetch; this.login = login; this.openClient = openClient; this.now = now;
     this.epochs = { epic: 0, gog: 0 }; this.queues = {}; this.inflight = {}; this.logins = {}; this.errors = {};
   }
   available() { return this.storage.isEncryptionAvailable() && this.storage.getSelectedStorageBackend?.() !== 'basic_text'; }
@@ -72,6 +72,8 @@ export class StoreAccounts {
     let epoch = ++this.epochs[provider];
     const controller = new AbortController(); this.logins[provider] = controller; delete this.errors[provider]; delete this.inflight[provider];
     try {
+      await this.openClient(provider);
+      if (epoch !== this.epochs[provider] || controller.signal.aborted) return this.status(provider);
       const code = await this.login(provider, { parent, signal: controller.signal });
       if (epoch !== this.epochs[provider]) return this.status(provider);
       const account = await this.token(provider, 'authorization_code', code);

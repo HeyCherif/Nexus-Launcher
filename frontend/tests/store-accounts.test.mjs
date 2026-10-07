@@ -9,6 +9,13 @@ import { createStoreLogin, EPIC_CLIENT, readLoginCallback, isEpicCodePage, isLog
 
 const storage = { isEncryptionAvailable: () => true, encryptString: value => Buffer.from(value).map(byte => byte ^ 42), decryptString: value => Buffer.from(value.map(byte => byte ^ 42)).toString() };
 const response = data => ({ ok: true, json: async () => data });
+test('Epic and GOG open an installed client before Nexus authorization; no client still allows web sign-in',async t=>{
+  for(const provider of ['epic','gog'])for(const installed of [true,false]){
+    const events=[];
+    const {store}=await setup(t,{openClient:async value=>{events.push(value);return installed;},login:async value=>{events.push(`authorize-${value}`);throw Error('Connection cancelled.');}});
+    assert.equal((await store.connect(provider)).error,'cancelled');assert.deepEqual(events,[provider,`authorize-${provider}`]);
+  }
+});
 async function setup(t, overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), 'nexus-store-test-')); t.after(() => rm(root, { recursive: true, force: true }));
   const store = new StoreAccounts(root, storage, { login: async () => 'auth_code123', fetch: async url => {

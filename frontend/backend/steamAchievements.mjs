@@ -22,22 +22,38 @@ export class SteamAchievements {
   available() { return this.storage.isEncryptionAvailable() && this.storage.getSelectedStorageBackend?.() !== 'basic_text'; }
   async account() { if (!this.available()) return null; try { const value = JSON.parse(this.storage.decryptString(await readFile(this.file))); return /^\d{17}$/.test(value.steamId) && (value.apiKey === undefined || /^[a-f\d]{32}$/i.test(value.apiKey)) ? value : null; } catch { return null; } }
   async status() { await this.writes; const account = await this.account(); return { linked: Boolean(account), configured: Boolean(account?.apiKey), storageAvailable: this.available(), steamId: account?.steamId }; }
-  async linkAccount(steamId, generation = this.generation) {
+  async linkAccount(steamId, generation = this.generation, isCurrent = () => true) {
     if (!this.available()) return {...await this.status(),error:'storage-unavailable'};
     if (!/^\d{17}$/.test(steamId)) return {...await this.status(),error:'invalid-input'};
     try { await this.write(async () => {
-      if (generation !== this.generation) return;
+      if (generation !== this.generation || !isCurrent()) return;
       const previous = await this.account();
-      if (generation !== this.generation) return;
+      if (generation !== this.generation || !isCurrent()) return;
       this.generation++; this.pending.clear();
       const value = {steamId};
       if (previous?.steamId === steamId && previous.apiKey) value.apiKey = previous.apiKey;
-      await this.atomic(this.file,this.storage.encryptString(JSON.stringify(value)));
+      const written = await this.atomic(this.file,this.storage.encryptString(JSON.stringify(value)),isCurrent);
+      if (written === false) return;
+      if (!isCurrent()) {
+        if (previous) await this.atomic(this.file,this.storage.encryptString(JSON.stringify(previous)));
+        else await rm(this.file,{force:true});
+        return;
+      }
       if (previous?.steamId !== steamId) await rm(this.cacheFile,{force:true});
     }); } catch { return {...await this.status(),error:'storage-error'}; }
     return this.status();
   }
-  async atomic(file,value) { await mkdir(this.dir,{recursive:true}); const temp = `${file}.${process.pid}.tmp`; await writeFile(temp,value,{mode:0o600}); await rename(temp,file); }
+  async atomic(file,value,isCurrent = () => true) {
+    const temp = `${file}.${process.pid}.tmp`;
+    try {
+      if(!isCurrent())return false;
+      await mkdir(this.dir,{recursive:true});
+      if(!isCurrent())return false;
+      await writeFile(temp,value,{mode:0o600});
+      if(!isCurrent())return false;
+      await rename(temp,file);return true;
+    } finally { await rm(temp,{force:true}); }
+  }
   write(action) { const task = this.writes.then(action); this.writes = task.catch(() => {}); return task; }
   async request(method,params) {
     const url = new URL(`https://api.steampowered.com/${method}/`); Object.entries(params).forEach(([key,value]) => url.searchParams.set(key,String(value)));

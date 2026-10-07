@@ -4,9 +4,18 @@ import { act, cleanup, render, screen, waitFor, fireEvent } from '@testing-libra
 import { afterEach, expect, test, vi } from 'vitest';
 import { SteamAchievements, SteamAccountSettings } from './SteamAchievements';
 afterEach(() => { cleanup(); delete window.nexusDesktop; });
-test('Steam opens its client without any API key or technical profile input',async()=>{
+test('Steam connects without any API key or technical profile input',async()=>{
  window.nexusDesktop={getSteamAccountStatus:vi.fn().mockResolvedValue({configured:false,linked:false,storageAvailable:true}),connectSteamAccount:vi.fn().mockResolvedValue({configured:true,linked:true,storageAvailable:true})} as unknown as NonNullable<Window['nexusDesktop']>;
- render(<SteamAccountSettings locale="en"/>);fireEvent.click(screen.getByRole('button',{name:'Open Steam'}));await screen.findByText('Local profile available');expect(window.nexusDesktop.connectSteamAccount).toHaveBeenCalledOnce();expect(screen.queryByRole('textbox')).toBeNull();expect(document.querySelector('input[type=password]')).toBeNull();
+ render(<SteamAccountSettings locale="en"/>);fireEvent.click(screen.getByRole('button',{name:'Connect Steam'}));await screen.findByText('Local profile available');expect(window.nexusDesktop.connectSteamAccount).toHaveBeenCalledOnce();expect(screen.queryByRole('textbox')).toBeNull();expect(document.querySelector('input[type=password]')).toBeNull();
+});
+test('browser identity is shown separately from local Steam synchronization and cancellation is translated',async()=>{
+ window.nexusDesktop={getSteamAccountStatus:vi.fn().mockResolvedValue({configured:false,linked:true,local:false,storageAvailable:true}),connectSteamAccount:vi.fn().mockResolvedValue({configured:false,linked:true,local:false,storageAvailable:true,error:'cancelled'})} as unknown as NonNullable<Window['nexusDesktop']>;
+ render(<SteamAccountSettings locale="fr"/>);await screen.findByText('Profil Steam relié · données locales indisponibles');fireEvent.click(screen.getByRole('button',{name:'Connecter Steam'}));await screen.findByText('Connexion annulée.');
+});
+test('returning from the Steam client updates the visible account without reopening sign-in',async()=>{
+ let notify!:()=>void;const unsubscribe=vi.fn(),changed=vi.fn();
+ window.nexusDesktop={getSteamAccountStatus:vi.fn().mockResolvedValueOnce({linked:false,configured:false,storageAvailable:true}).mockResolvedValue({linked:true,configured:true,local:true,storageAvailable:true}),onSteamDataChanged:vi.fn(fn=>{notify=fn;return unsubscribe;})} as unknown as NonNullable<Window['nexusDesktop']>;
+ const view=render(<SteamAccountSettings locale="en" onAccountChange={changed}/>);await waitFor(()=>expect(window.nexusDesktop!.onSteamDataChanged).toHaveBeenCalled());act(()=>notify());await screen.findByText('Local profile available');expect(changed).toHaveBeenCalledOnce();view.unmount();expect(unsubscribe).toHaveBeenCalledOnce();
 });
 test('browser explains desktop requirement without fabricated progress', () => {
   render(<SteamAchievements appId={10} locale="en" />);

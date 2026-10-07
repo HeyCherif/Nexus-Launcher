@@ -44,6 +44,12 @@
 
 ## Current Player Update decisions (2026-10-06)
 
+- Account connection now detects and opens installed Steam/Epic/GOG clients. If
+  Steam is missing or cannot open, use verified OpenID in Chrome/default browser;
+  identity alone is not synchronized library/achievement access. Epic/GOG retain
+  secure sandboxed web authorization with automatic return, even without clients.
+  Refresh Steam status when returning to Nexus; do not ask for API keys or IDs.
+
 - Current Steam UX supersedes the historical OpenID/API-key instructions below:
   open the installed Steam client, use its local profile/cache for available hours
   and partial achievement progress, label cached/unavailable data honestly. Do not

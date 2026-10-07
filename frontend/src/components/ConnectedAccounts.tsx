@@ -37,6 +37,14 @@ export function ConnectedAccounts({locale}:{locale:'fr'|'en'}) {
     const value = await desktop.getSteamAccountStatus();
     setStatuses(previous=>({...previous,steam:value}));
   };
+  useEffect(()=>{
+    let alive=true;
+    const unsubscribe=desktop?.onSteamDataChanged?.(()=>{
+      void desktop.getSteamAccountStatus().then(value=>{if(alive)setStatuses(previous=>({...previous,steam:value}));}).catch(()=>{});
+      if(selected==='steam')void load('steam',true);
+    });
+    return ()=>{alive=false;unsubscribe?.();};
+  },[desktop,selected]);
   useEffect(() => {
     let alive=true;
     if(desktop)void Promise.all([desktop.getSteamAccountStatus(),desktop.getStoreAccountStatus('epic'),desktop.getStoreAccountStatus('gog')]).then(values=>{if(alive)setStatuses({steam:values[0],epic:values[1],gog:values[2]});}).catch(()=>{if(alive)setMessage(copy.error);});

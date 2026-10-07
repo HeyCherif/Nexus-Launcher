@@ -9,11 +9,12 @@ import type { SteamAccountStatus, SteamAchievementResult } from '../steamAchieve
 
 export function SteamAccountSettings({locale,onAccountChange}:{locale:'fr'|'en';onAccountChange?:()=>void}) {
   const c=steamConsoleCopy[locale],desktop=window.nexusDesktop;
-  const [status,setStatus]=useState<SteamAccountStatus>(),[busy,setBusy]=useState(false),[error,setError]=useState('');const alive=useRef(true);
-  useEffect(()=>{alive.current=true;void desktop?.getSteamAccountStatus().then(value=>{if(alive.current)setStatus(value);}).catch(()=>{});return()=>{alive.current=false;};},[desktop]);
-  const connect=async()=>{if(!desktop)return;setBusy(true);setError('');try{const value=await desktop.connectSteamAccount();if(alive.current){setStatus(value);onAccountChange?.();}}catch{if(alive.current)setError(c.steamMissing);}finally{if(alive.current)setBusy(false);}};
+  const [status,setStatus]=useState<SteamAccountStatus>(),[busy,setBusy]=useState(false),[error,setError]=useState('');const alive=useRef(true),change=useRef(onAccountChange);change.current=onAccountChange;
+  useEffect(()=>{alive.current=true;const refresh=async(notify=false)=>{try{const value=await desktop?.getSteamAccountStatus();if(alive.current){setStatus(value);if(notify)change.current?.();}}catch{}};void refresh();const unsubscribe=desktop?.onSteamDataChanged?.(()=>void refresh(true));return()=>{alive.current=false;unsubscribe?.();};},[desktop]);
+  const connect=async()=>{if(!desktop)return;setBusy(true);setError('');try{const value=await desktop.connectSteamAccount();if(alive.current){setStatus(value);setError(value.error?(accountsCopy[locale][value.error as keyof typeof accountsCopy['en']]||c.steamMissing):'');onAccountChange?.();}}catch{if(alive.current)setError(c.steamMissing);}finally{if(alive.current)setBusy(false);}};
   return <section className="steam-account-settings console-steam" aria-label={c.profile}>
-    <div className="console-profile-row"><span className="console-feature-icon console-steam-mark"><SteamLogo size={32} weight="fill"/></span><div className="console-feature-copy"><h3>Steam</h3><p>{status?.linked?c.linked:desktop?c.unlinked:c.desktop}</p></div><button type="button" className="console-pill" disabled={busy||!desktop} onClick={()=>void connect()}><ArrowSquareOut size={18}/>{busy?c.busy:c.open}</button></div>
+    <div className="console-profile-row"><span className="console-feature-icon console-steam-mark"><SteamLogo size={32} weight="fill"/></span><div className="console-feature-copy"><h3>Steam</h3><p>{status?.linked?status.local===false?c.browserLinked:c.linked:desktop?c.unlinked:c.desktop}</p></div><button type="button" className="console-pill" disabled={busy||!desktop} onClick={()=>void connect()}><ArrowSquareOut size={18}/>{busy?c.busy:c.connect}</button></div>
+    {busy?<button className="console-pill" type="button" onClick={()=>void desktop?.cancelSteamConnection()}>{c.cancel}</button>:null}
     <SteamNotifications locale={locale}/>{error&&<p className="console-feedback" role="status">{error}</p>}
   </section>;
 }

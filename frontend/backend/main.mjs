@@ -26,6 +26,9 @@ import { SanCompanion } from './sanCompanion.mjs';
 let sanCompanion;
 function getSanCompanion(){return sanCompanion ||= new SanCompanion(app.getPath('userData'));}
 import { LocalSteamProgress } from "./steamLocal.mjs";
+import { SteamAchievements as BrowserSteamAccount } from './steamAchievements.mjs';
+import { SteamOpenId, createSteamBrowserLauncher } from './steamOpenId.mjs';
+import { createStoreClientOpener, SteamConnection } from './storeClient.mjs';
 import { SanInstaller } from "./sanInstaller.mjs";
 
 import { StoreAccounts } from './storeAccounts.mjs';
@@ -125,6 +128,8 @@ let backendPromise;
 let registryPromise;
 let secretStore;
 let steamAchievements;
+const openStoreClient = createStoreClientOpener();
+let steamBrowser;
 let sanInstaller;
 function openSteam(){return shell.openExternal('steam://open/main');}
 function getSanInstaller(){return sanInstaller ||= new SanInstaller(app.getPath('userData'),getSanCompanion(),{fetch:(url,options)=>net.fetch(url,options),openSteam,runInstaller:async(file)=>{
@@ -133,8 +138,14 @@ function getSanInstaller(){return sanInstaller ||= new SanInstaller(app.getPath(
 }});}
 
 let storeAccounts;
-function getStoreAccounts() { return storeAccounts ||= new StoreAccounts(app.getPath('userData'), safeStorage, { fetch: (url, options) => net.fetch(url, options), login: createStoreLogin(BrowserWindow) }); }
-function getSteamAchievements() { return steamAchievements ||= new LocalSteamProgress(app.getPath("userData")); }
+function getStoreAccounts() { return storeAccounts ||= new StoreAccounts(app.getPath('userData'), safeStorage, { fetch: (url, options) => net.fetch(url, options), login: createStoreLogin(BrowserWindow), openClient:openStoreClient }); }
+function getSteamAchievements() {
+  if(!steamAchievements){
+    steamBrowser = new SteamOpenId({openExternal:createSteamBrowserLauncher({openExternal:url=>shell.openExternal(url)}),fetch:(url,options)=>net.fetch(url,options)});
+    steamAchievements = new SteamConnection({local:new LocalSteamProgress(app.getPath('userData')),web:new BrowserSteamAccount(app.getPath('userData'),safeStorage),browser:steamBrowser,openClient:openStoreClient});
+  }
+  return steamAchievements;
+}
 let discoveryFingerprint = "";
 let discoveryBusy = false;
 function getSecretStore() { return secretStore ||= new SecretStore(app.getPath("userData"), safeStorage); }
@@ -320,10 +331,10 @@ function registerIpc() {
   });
   ipcMain.handle("nexus:steamgrid-status", async () => getSecretStore().status());
   ipcMain.handle("nexus:steam-account-status", async () => getSteamAchievements().status());
-  accountIpc('nexus:steam-account-connect',async()=>{await openSteam();const result=await getSteamAchievements().connect();broadcastSteamData();return result;});
-  accountIpc('nexus:steam-account-cancel',()=>getSteamAchievements().status());
+  accountIpc('nexus:steam-account-connect',async()=>{const result=await getSteamAchievements().connect();broadcastSteamData();return result;});
+  accountIpc('nexus:steam-account-cancel',()=>{getSteamAchievements().cancel();return getSteamAchievements().status();});
   accountIpc('nexus:steam-notification-status',()=>getSanInstaller().status());
-  accountIpc('nexus:steam-notification-activate',async()=>{await getSteamAchievements().connect();const result=await getSanInstaller().activate();broadcastSteamData();return result;});
+  accountIpc('nexus:steam-notification-activate',async()=>{await getSteamAchievements().local.connect();const result=await getSanInstaller().activate();broadcastSteamData();return result;});
   accountIpc('nexus:steam-notification-cancel',async()=>{getSanInstaller().cancel();return getSanInstaller().status();});
   accountIpc('nexus:steam-open',async()=>{await openSteam();return {ok:true};});
   accountIpc('nexus:game-activity',(_event,gameId)=>gameActivity.history(gameId));
@@ -455,6 +466,7 @@ async function createWindow() {
   });
 
   mainWindow=window;
+  window.on('focus',()=>{if(steamAchievements)broadcastSteamData();});
   window.once('closed',()=>{achievementMonitor?.stopAll();achievementOverlay?.dispose();if(mainWindow===window)mainWindow=null;});
   window.webContents.setWindowOpenHandler(({ url }) => {
     if (/^https:\/\/store\.steampowered\.com\//i.test(url)) void shell.openExternal(url);
@@ -494,6 +506,7 @@ app.on("window-all-closed", () => {
 // Finish queued journal writes before exiting; running games remain interrupted on restart.
 let moduleShutdown=false;
 app.on('before-quit',event=>{
+  steamBrowser?.cancel();
   if(moduleShutdown)return;event.preventDefault();moduleShutdown=true;
   globalShortcut.unregisterAll();
   void modules.dispose().finally(()=>{captureOverlay?.dispose();app.quit();});

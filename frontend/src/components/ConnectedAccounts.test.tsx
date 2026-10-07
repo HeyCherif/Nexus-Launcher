@@ -15,7 +15,7 @@ test.each(['Steam','Epic Games','GOG'])('browser opens %s glass dialog without c
   const trigger=screen.getByRole('button',{name:`Connect ${provider}`});
   trigger.focus();fireEvent.click(trigger);
   const dialog=await screen.findByRole('dialog',{name:provider});
-  expect(within(dialog).getByRole('button',{name:provider==='Steam'?'Open Steam':'Open sign-in'}).hasAttribute('disabled')).toBe(true);
+  expect(within(dialog).getByRole('button',{name:provider==='Steam'?'Connect Steam':'Open sign-in'}).hasAttribute('disabled')).toBe(true);
   fireEvent.click(within(dialog).getByRole('button',{name:'Close'}));
   await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
   await waitFor(()=>expect(document.activeElement).toBe(trigger));
@@ -72,7 +72,7 @@ test('Steam window remains reachable while the account library is still loading'
   render(<MemoryRouter><ConnectedAccounts locale="en"/></MemoryRouter>);
   fireEvent.click(screen.getByRole('button',{name:'Connect Steam'}));
   const dialog=await screen.findByRole('dialog',{name:'Steam'});
-  fireEvent.click(within(dialog).getByRole('button',{name:'Open Steam'}));
+  fireEvent.click(within(dialog).getByRole('button',{name:'Connect Steam'}));
   await waitFor(()=>expect(window.nexusDesktop!.connectSteamAccount).toHaveBeenCalledOnce());
 });
 
@@ -87,7 +87,7 @@ test('Steam refresh cannot invalidate a pending Epic authentication',async()=>{
   fireEvent.click(screen.getByRole('button',{name:'Close'}));
   await waitFor(()=>expect(screen.queryByRole('dialog')).toBeNull());
   fireEvent.click(screen.getByRole('button',{name:'Connect Steam'}));
-  fireEvent.click(within(screen.getByRole('dialog',{name:'Steam'})).getByRole('button',{name:'Open Steam'}));
+  fireEvent.click(within(screen.getByRole('dialog',{name:'Steam'})).getByRole('button',{name:'Connect Steam'}));
   await waitFor(()=>expect(window.nexusDesktop!.getSteamLibrary).toHaveBeenCalledWith(true));
   await act(async()=>{resolve({configured:true,storageAvailable:true});await pending;});
   await screen.findByText('Real owned game');
@@ -98,5 +98,5 @@ test('Steam refresh cannot invalidate a pending Epic authentication',async()=>{
 test('linked Steam identity is not presented as synchronized account data',async()=>{
   fixture();vi.mocked(window.nexusDesktop!.getSteamAccountStatus).mockResolvedValue({linked:true,configured:false,storageAvailable:true});
   render(<MemoryRouter><ConnectedAccounts locale="en"/></MemoryRouter>);
-  expect(await screen.findByText('Local profile available')).toBeTruthy();
+  expect(await screen.findByText('Steam profile linked')).toBeTruthy();
 });
