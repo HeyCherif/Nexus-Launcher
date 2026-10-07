@@ -1,4 +1,4 @@
-import { ArrowClockwise, CircleNotch, FilmSlate, FolderSimplePlus, MagnifyingGlass, Plus, X } from '@phosphor-icons/react';
+import { ArrowClockwise, CircleNotch, FilmSlate, FolderSimplePlus, MagnifyingGlass, Plus, Star, X } from '@phosphor-icons/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useNavigate } from 'react-router-dom';
@@ -15,6 +15,8 @@ export function LibraryScreen() {
   const { t } = useTranslation();
   const navigate = useNavigate();
   const games = useLibraryGames();
+  const favoriteIds=useNexusStore(state=>state.favoriteIds);
+  const [favoritesOnly,setFavoritesOnly]=useState(false);
   const locale = useNexusStore(state => state.locale);
   const selectedGameId = useNexusStore(state => state.selectedGameId);
   const setSelectedGame = useNexusStore(state => state.setSelectedGame);
@@ -26,10 +28,10 @@ export function LibraryScreen() {
   const [message, setMessage] = useState('');
   const [trailerId, setTrailerId] = useState<string | null>(null);
   const hoverTimer = useRef<number | null>(null);
-  const visibleGames = useMemo(() => libraryView(games, view), [games, view]);
+  const visibleGames = useMemo(() => libraryView(favoritesOnly?games.filter(game=>favoriteIds.includes(game.id)):games, view), [games, view, favoritesOnly, favoriteIds]);
   const activeGame = visibleGames.find(game => game.id === selectedGameId) || visibleGames[0];
   const trailerGame = games.find(game => game.id === trailerId);
-  const filtered = Boolean(view.query || view.source !== 'all' || view.status !== 'all');
+  const filtered = Boolean(favoritesOnly || view.query || view.source !== 'all' || view.status !== 'all');
   const updateView = (next: Partial<LibraryView>) => setView(current => ({ ...current, ...next }));
   const endPreview = () => { if (hoverTimer.current !== null) clearTimeout(hoverTimer.current); hoverTimer.current = null; setPreviewGame(''); };
   useEffect(() => () => { if (hoverTimer.current !== null) clearTimeout(hoverTimer.current); setPreviewGame(''); }, [setPreviewGame]);
@@ -44,6 +46,7 @@ export function LibraryScreen() {
       if (!result) return;
       completeLibraryScan(result.games, result.root, result.roots, result.manualGames, result.scanErrors);
       setView({ query: '', source: 'all', status: 'all', sort: 'title' });
+      setFavoritesOnly(false);
       const added = result.games.find(game => !previous.has(game.id));
       if (added) { setSelectedGame(added.id); if (kind === 'game') navigate(`/game/${added.id}`); }
       setMessage(t('library.imported', { count: result.games.length }));
@@ -65,17 +68,17 @@ export function LibraryScreen() {
       <label className="library-select"><span>{t('library.sort')}</span><select title={t('library.controllerSelect')} aria-label={t('library.sort')} value={view.sort} onChange={event => updateView({ sort: event.target.value as LibraryView['sort'] })}><option value="title">{t('library.sortTitle')}</option><option value="recent">{t('library.sortRecent')}</option><option value="playtime">{t('detail.playtime')}</option></select></label>
     </div>
     <div className="library-filterbar">
-      <div className="library-status-filters" role="group" aria-label={t('library.statusFilter')}>{(['all','ready','configure'] as const).map(status => <button key={status} type="button" aria-pressed={view.status === status} onClick={() => updateView({ status })}>{t(status === 'all' ? 'library.allGames' : status === 'ready' ? 'status.ready' : 'status.configure')}<span>{status === 'all' ? games.length : games.filter(game => game.installed === (status === 'ready')).length}</span></button>)}</div>
-      <span className="library-result-count">{t('library.results', { count: visibleGames.length })}{filtered ? <button className="screen-tool" type="button" onClick={() => updateView({ query: '', status: 'all', source: 'all' })}>{t('library.reset')}</button> : null}</span>
+      <div className="library-status-filters" role="group" aria-label={t('library.statusFilter')}>{(['all','ready','configure'] as const).map(status => <button key={status} type="button" aria-pressed={view.status === status} onClick={() => updateView({ status })}>{t(status === 'all' ? 'library.allGames' : status === 'ready' ? 'status.ready' : 'status.configure')}<span>{status === 'all' ? games.length : games.filter(game => game.installed === (status === 'ready')).length}</span></button>)}<button type="button" aria-pressed={favoritesOnly} onClick={()=>setFavoritesOnly(value=>!value)}><Star size={16} weight={favoritesOnly?'fill':'regular'}/>{locale==='fr'?'Favoris':'Favorites'}<span>{games.filter(game=>favoriteIds.includes(game.id)).length}</span></button></div>
+      <span className="library-result-count">{t('library.results', { count: visibleGames.length })}{filtered ? <button className="screen-tool" type="button" onClick={() => {setFavoritesOnly(false);updateView({ query: '', status: 'all', source: 'all' });}}>{t('library.reset')}</button> : null}</span>
     </div>
     {busy || message ? <p className="library-feedback" role="status">{busy ? t('library.importing') : message}</p> : null}
     <div className="library-stage">
       <div className="library-showcase" aria-label={t('library.title')}>
         {visibleGames.map(game => <button className="library-entry" key={game.id} data-active={game.id === activeGame?.id} data-launch-game={game.installed ? game.id : undefined} title={t('action.holdToPlay')} onClick={() => { focusGame(game.id); navigate(`/game/${game.id}`); }} onFocus={() => focusGame(game.id)} onMouseEnter={() => previewGame(game.id)} onMouseLeave={endPreview} type="button">
-          <img src={game.artwork} alt="" loading="lazy" decoding="async" onError={event => applyImageFallback(event, [...(game.artworkFallbacks || []), game.heroArtwork])} /><span className="library-entry__shade" />
+          <img src={game.artwork} alt="" loading="lazy" decoding="async" onError={event => applyImageFallback(event, [...(game.artworkFallbacks || []), game.heroArtwork])} /><span className="library-entry__shade" />{favoriteIds.includes(game.id)?<span className="library-entry__favorite" aria-label={locale==='fr'?'Favori':'Favorite'}><Star size={18} weight="fill"/></span>:null}
           <span className="library-entry__copy"><strong>{game.title}</strong><small><span>{game.source}</span><span data-ready={game.installed}>{t(game.installed ? 'status.ready' : 'status.configure')}</span></small></span>
         </button>)}
-        {!visibleGames.length ? <div className="library-zero"><h2>{t(games.length ? 'library.noResults' : 'library.empty')}</h2><p>{t(games.length ? 'library.noResultsHint' : 'library.emptyHint')}</p>{filtered ? <button className="screen-tool" type="button" onClick={() => updateView({ query: '', status: 'all', source: 'all' })}>{t('library.reset')}</button> : <button className="screen-tool" type="button" disabled={busy} onClick={() => void add('folder')}><FolderSimplePlus size={18} />{t('library.addFolder')}</button>}</div> : null}
+        {!visibleGames.length ? <div className="library-zero"><h2>{t(games.length ? 'library.noResults' : 'library.empty')}</h2><p>{t(games.length ? 'library.noResultsHint' : 'library.emptyHint')}</p>{filtered ? <button className="screen-tool" type="button" onClick={() => {setFavoritesOnly(false);updateView({ query: '', status: 'all', source: 'all' });}}>{t('library.reset')}</button> : <button className="screen-tool" type="button" disabled={busy} onClick={() => void add('folder')}><FolderSimplePlus size={18} />{t('library.addFolder')}</button>}</div> : null}
       </div>
     </div>
     <footer className="library-footer"><span>{t('library.interaction')}</span>{activeGame?.trailer.url ? <button className="screen-tool" type="button" onClick={() => setTrailerId(activeGame.id)}><FilmSlate size={17} />{t('library.trailer')}</button> : null}</footer>

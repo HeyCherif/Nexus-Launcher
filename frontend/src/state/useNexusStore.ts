@@ -1,3 +1,4 @@
+import {readFavorites,writeFavorites} from "../services/favorites";
 import { create } from "zustand";
 import type { Game, GameId, Locale, SystemInfo, ThemeId } from "../types";
 import { readMediaPreferences, sanitizeMediaPreferences, type MediaPreferences } from "../media/preferences";
@@ -6,6 +7,8 @@ const readLocale = (): Locale => typeof localStorage !== "undefined" && localSto
 const readTheme = (): ThemeId => typeof localStorage !== "undefined" && localStorage.getItem("nexus.theme.v1") === "solaris" ? "solaris" : "obsidienne";
 
 interface NexusState {
+  favoriteIds: GameId[];
+  toggleFavorite: (id: GameId) => void;
   selectedGameId: GameId;
   previewGameId: GameId;
   locale: Locale;
@@ -33,6 +36,12 @@ interface NexusState {
 }
 
 export const useNexusStore = create<NexusState>((set) => ({
+  favoriteIds: readFavorites(),
+  toggleFavorite: (id) => set(state => {
+    const favoriteIds=state.favoriteIds.includes(id)?state.favoriteIds.filter(value=>value!==id):[...state.favoriteIds,id];
+    writeFavorites(favoriteIds);
+    return {favoriteIds};
+  }),
   selectedGameId: "",
   previewGameId: "",
   locale: readLocale(),

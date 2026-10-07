@@ -325,3 +325,5 @@
 .startup-toggle[aria-checked=true] > span { background:var(--color-focus); box-shadow:0 0 10px var(--color-focus); }
 .startup-toggle > strong { font-size:.8rem; font-weight:500; }
 .startup-toggle:focus-visible { outline:2px solid var(--color-focus); outline-offset:4px; }
+.library-entry__favorite { position:absolute; z-index:2; top:.65rem; right:.65rem; display:grid; place-items:center; width:2rem; height:2rem; border-radius:50%; background:var(--glass-command); border:1px solid var(--glass-edge); color:var(--color-focus); backdrop-filter:blur(12px); }
+@media (prefers-reduced-transparency:reduce) { .library-entry__favorite { backdrop-filter:none; } }

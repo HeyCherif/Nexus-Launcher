@@ -4,11 +4,11 @@ import { accountsCopy } from "../accountsCopy";
 import { SteamPlaytime } from "../components/SteamPlaytime";
 import { GameActivity } from '../components/GameActivity';
 import { GameSaves } from '../components/GameSaves';
-import { X, SlidersHorizontal, Link, ArrowLeft, CheckCircle, Clock, FilmSlate, GameController, HardDrives, Play, DotsThree, Trophy } from "@phosphor-icons/react";
+import { X, SlidersHorizontal, Link, ArrowLeft, CheckCircle, Clock, FilmSlate, GameController, HardDrives, Play, DotsThree, Star, Trophy } from "@phosphor-icons/react";
 import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
+import { Navigate, useNavigate, useParams } from "react-router-dom";
 import { NexusButton } from "../components/NexusButton";
 import { TrailerDialog } from "../components/TrailerDialog";
 import { ScreenshotGallery } from "../components/ScreenshotGallery";
@@ -28,7 +28,9 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
   const { gameId } = useParams();
   const games = useLibraryGames();
   const navigate = useNavigate();
-  const location = useLocation();
+  const favoriteIds = useNexusStore(state=>state.favoriteIds);
+  const toggleFavorite = useNexusStore(state=>state.toggleFavorite);
+  const [favoriteError,setFavoriteError]=useState(false);
   const locale = useNexusStore((state) => state.locale);
   const copy=setupCopy[locale], reducedMotion=useReducedMotion(),tabs=useRef<HTMLElement>(null);
   const setSelectedGame = useNexusStore((state) => state.setSelectedGame);
@@ -51,13 +53,13 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
   };
 
   useEffect(() => { if (game) setSelectedGame(game.id); }, [game, setSelectedGame]);
-  useEffect(()=>{setTab('overview');setTrailerOpen(false);setCustomizeOpen(false);setEditTitle('');setEditMessage('');},[gameId]);
+  useEffect(()=>{setFavoriteError(false);setTab('overview');setTrailerOpen(false);setCustomizeOpen(false);setEditTitle('');setEditMessage('');},[gameId]);
   if (!game && (libraryScanState === "idle" || libraryScanState === "scanning")) return <div className="route-loading"><span />{t("detail.loading")}</div>;
   if (!game) return <Navigate to="/library" replace />;
 
   return (
     <section className="game-detail-screen game-detail-visual game-detail-console" aria-labelledby="game-detail-title">
-      <button className="game-detail__back" onClick={() => location.key === "default" ? navigate("/library", { replace: true }) : navigate(-1)} type="button"><ArrowLeft size={20} />{t("detail.back")}</button>
+      <button className="game-detail__back" onClick={() => navigate("/library")} type="button"><ArrowLeft size={20} />{t("detail.back")}</button>
       <div className="game-detail__hero">
         <span className="screen-kicker">{game.source} · {game.genre[locale]}</span>
         {game.logoArtwork ? <img className="game-detail__logo" src={game.logoArtwork} alt="" onError={(event) => applyImageFallback(event, [...(game.heroArtworkFallbacks || []), game.artwork])} /> : null}
@@ -69,6 +71,7 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
           <NexusButton data-sfx={game.installed ? "launch" : undefined} onClick={game.installed ? onLaunch : () => navigate("/settings?section=play")} icon={game.installed ? <Play size={18} weight="fill" /> : <GameController size={18} />}>{t(game.installed ? "action.play" : "action.configure")}</NexusButton>
           {game.trailer.url ? <NexusButton variant="ghost" onClick={() => setTrailerOpen(true)} icon={<FilmSlate size={20} />}>{t("detail.trailer")}</NexusButton> : null}
           <DropdownMenu.Root><DropdownMenu.Trigger className="game-detail__more" ref={customizeTrigger} aria-label={locale==='fr'?'Plus d’options':'More options'}><DotsThree size={28}/></DropdownMenu.Trigger><DropdownMenu.Portal><DropdownMenu.Content className="game-detail-menu" sideOffset={10}>
+            <DropdownMenu.Item onSelect={()=>{try{toggleFavorite(game.id);setFavoriteError(false);}catch{setFavoriteError(true);}}}><Star size={18} weight={favoriteIds.includes(game.id)?'fill':'regular'}/>{locale==='fr'?(favoriteIds.includes(game.id)?'Retirer des favoris':'Ajouter aux favoris'):(favoriteIds.includes(game.id)?'Remove from favorites':'Add to favorites')}</DropdownMenu.Item>
             {game.discovered?<DropdownMenu.Item onSelect={()=>setCustomizeOpen(true)}><SlidersHorizontal size={18}/>{accountsCopy[locale].customize}</DropdownMenu.Item>:null}
             <DropdownMenu.Item onSelect={()=>navigate('/settings?section=accounts')}><Link size={18}/>{accountsCopy[locale].settings}</DropdownMenu.Item>
           </DropdownMenu.Content></DropdownMenu.Portal></DropdownMenu.Root>
@@ -76,6 +79,7 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
 
       </div>
 
+      {favoriteError?<p role="status">{locale==='fr'?'Impossible d’enregistrer le favori.':'Could not save this favorite.'}</p>:null}
       <div className="game-detail__facts" aria-label={t("detail.quickInfo")}>
         <SteamPlaytime appId={game.steamAppId} locale={locale} alwaysShow/>
         {game.discovered || game.playtimeHours > 0 ? <div><Clock size={22} /><span><small>{t(game.discovered ? "detail.nexusPlaytime" : "detail.playtime")}</small><strong>{game.discovered ? t("detail.playtimeValue", { hours: Math.floor(game.playtimeHours), minutes: Math.floor((game.playtimeHours * 60) % 60) }) : `${game.playtimeHours.toLocaleString(locale)} h`}</strong></span></div> : null}
