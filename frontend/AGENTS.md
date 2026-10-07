@@ -157,3 +157,9 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 - Distinguish linked Steam identity from API synchronization; show missing-key/private/offline states for historical playtime and achievements.
 - Optional installed Steam Achievement Notifier companion handles real-time Steam notifications without an API key. Detect or select the installed executable, persist opt-in, start before Steam launches and suppress duplicate Nexus notifications after successful SAN startup. SAN remains separate; do not bundle its assets/source without verified reuse terms.
 - Built-in Nexus fallback polls only during tracked sessions, ignores existing unlocks and late replies after exit/account changes. Show clearly labeled test previews and explain borderless/windowed display limits.
+
+## Setup and game details (2026-10-07)
+
+- Onboarding pairs folder choice with real read-only device and installed launcher checks. Keep unavailable values honest; do not connect accounts, install modules or send hardware telemetry automatically.
+- Preserve the console liquid glass atmosphere, short FR/EN copy, directional opacity/transform motion, and keyboard/controller focus. Game details lead with artwork and launch actions; show real playtime/progress, with technical metadata secondary.
+- Continue locally before another release. Account publishing is deferred while automatic approval review rejects the public upstream client constants; do not bypass that review.

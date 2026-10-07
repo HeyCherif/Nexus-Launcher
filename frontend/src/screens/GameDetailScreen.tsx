@@ -4,7 +4,7 @@ import { SteamPlaytime } from "../components/SteamPlaytime";
 import { GameActivity } from '../components/GameActivity';
 import { GameSaves } from '../components/GameSaves';
 import { X, SlidersHorizontal, Link, ArrowLeft, CheckCircle, Clock, FilmSlate, GameController, HardDrives, Play, Star, Trophy } from "@phosphor-icons/react";
-import { AnimatePresence, motion } from "motion/react";
+import { AnimatePresence, motion, useReducedMotion } from "motion/react";
 import { useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 import { Navigate, useLocation, useNavigate, useParams } from "react-router-dom";
@@ -16,6 +16,7 @@ import { useLibraryGames } from "../hooks/useLibraryGames";
 import { useNexusStore } from "../state/useNexusStore";
 import { applyImageFallback } from "../utils/imageFallback";
 import { libraryClient } from "../services/libraryClient";
+import { setupCopy } from '../setupCopy';
 
 type DetailTab = "overview" | "media" | "achievements";
 
@@ -28,6 +29,7 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
   const navigate = useNavigate();
   const location = useLocation();
   const locale = useNexusStore((state) => state.locale);
+  const copy=setupCopy[locale], reducedMotion=useReducedMotion(),tabs=useRef<HTMLElement>(null);
   const setSelectedGame = useNexusStore((state) => state.setSelectedGame);
   const completeLibraryScan = useNexusStore((state) => state.completeLibraryScan);
   const libraryScanState = useNexusStore((state) => state.libraryScanState);
@@ -48,6 +50,7 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
   };
 
   useEffect(() => { if (game) setSelectedGame(game.id); }, [game, setSelectedGame]);
+  useEffect(()=>{setTab('overview');setTrailerOpen(false);setCustomizeOpen(false);setEditTitle('');setEditMessage('');},[gameId]);
   if (!game && (libraryScanState === "idle" || libraryScanState === "scanning")) return <div className="route-loading"><span />{t("detail.loading")}</div>;
   if (!game) return <Navigate to="/library" replace />;
 
@@ -72,22 +75,31 @@ export function GameDetailScreen({ onLaunch }: GameDetailScreenProps) {
       <div className="game-detail__facts" aria-label={t("detail.quickInfo")}>
         <SteamPlaytime appId={game.steamAppId} locale={locale}/>
         {game.discovered || game.playtimeHours > 0 ? <div><Clock size={22} /><span><small>{t(game.discovered ? "detail.nexusPlaytime" : "detail.playtime")}</small><strong>{game.discovered ? t("detail.playtimeValue", { hours: Math.floor(game.playtimeHours), minutes: Math.floor((game.playtimeHours * 60) % 60) }) : `${game.playtimeHours.toLocaleString(locale)} h`}</strong></span></div> : null}
-        {game.achievementProgress.total > 0 ? <div><Trophy size={22} /><span><small>{t("detail.achievements")}</small><strong>{game.achievementProgress.unlocked}/{game.achievementProgress.total}</strong></span></div> : null}
+        {game.achievementProgress.total > 0 ? <div><Trophy size={22} /><span><small>{t("detail.achievements")}</small><strong>{game.achievementProgress.unlocked}/{game.achievementProgress.total}</strong><progress aria-label={t('detail.achievements')} max={game.achievementProgress.total} value={game.achievementProgress.unlocked}/></span></div> : null}
         {game.rating > 0 ? <div><Star size={22} /><span><small>{t("detail.community")}</small><strong>{game.rating}/100</strong></span></div> : null}
-        <div><HardDrives size={22} /><span><small>{t(game.lastPlayedAt ? "detail.lastPlayed" : "detail.modified")}</small><strong>{game.lastPlayed[locale]}</strong></span></div>
+        {game.lastPlayedAt?<div><Clock size={22} /><span><small>{t('detail.lastPlayed')}</small><strong>{game.lastPlayed[locale]}</strong></span></div>:null}
       </div>
 
-      <nav className="game-detail__tabs" aria-label={t("detail.tabs")}>
-        <button data-active={tab === "overview"} onClick={() => setTab("overview")} type="button">{t("detail.overview")}</button>
-        {game.trailer.url || game.screenshots?.length ? <button data-active={tab === "media"} onClick={() => setTab("media")} type="button">{t("detail.media")}</button> : null}
-        <button data-active={tab === "achievements"} onClick={() => setTab("achievements")} type="button">{t("detail.achievementsTab")}</button>
+      <nav className="game-detail__tabs" ref={tabs} role="tablist" aria-label={t("detail.tabs")} onKeyDown={event=>{
+        if(!['ArrowLeft','ArrowRight','Home','End'].includes(event.key))return;
+        event.preventDefault();event.stopPropagation();
+        const buttons=Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('[role=tab]'));
+        const index=buttons.indexOf(document.activeElement as HTMLButtonElement),current=index<0?buttons.findIndex(button=>button.dataset.active==='true'):index;
+        const next=event.key==='Home'?0:event.key==='End'?buttons.length-1:(current+(event.key==='ArrowRight'?1:-1)+buttons.length)%buttons.length;
+        buttons[next]?.click();buttons[next]?.focus();
+      }}>
+        <button role="tab" id="detail-tab-overview" aria-controls="detail-panel-overview" aria-selected={tab==='overview'} tabIndex={tab==='overview'?0:-1} data-active={tab === "overview"} onClick={() => setTab("overview")} type="button">{t("detail.overview")}</button>
+        {game.trailer.url || game.screenshots?.length ? <button role="tab" id="detail-tab-media" aria-controls="detail-panel-media" aria-selected={tab==='media'} tabIndex={tab==='media'?0:-1} data-active={tab === "media"} onClick={() => setTab("media")} type="button">{t("detail.media")}</button> : null}
+        <button role="tab" id="detail-tab-achievements" aria-controls="detail-panel-achievements" aria-selected={tab==='achievements'} tabIndex={tab==='achievements'?0:-1} data-active={tab === "achievements"} onClick={() => setTab("achievements")} type="button">{t("detail.achievementsTab")}</button>
       </nav>
       <AnimatePresence mode="wait" initial={false}>
-        <motion.div className="game-detail__panel" key={tab} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }} transition={{ duration: .18 }}>
+        <motion.div className="game-detail__panel" role="tabpanel" id={`detail-panel-${tab}`} aria-labelledby={`detail-tab-${tab}`} tabIndex={0} key={tab} initial={reducedMotion?false:{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: reducedMotion?0:-3 }} transition={{ duration: reducedMotion?0:.18 }}>
           {tab === "overview" ? <>
             {game.discovered?<GameActivity gameId={game.id} locale={locale}/>:null}
             <div className="game-detail__summary"><span className="screen-kicker">{t("detail.about")}</span><p>{game.description[locale]}</p></div>
-            <dl className="game-detail__specs"><div><dt>{t("detail.developer")}</dt><dd>{game.developer}</dd></div><div><dt>{t("detail.publisher")}</dt><dd>{game.publisher}</dd></div><div><dt>{t("detail.release")}</dt><dd>{game.releaseDate}</dd></div>{game.ageRating !== "Non renseigné" ? <div><dt>{t("detail.rating")}</dt><dd>{game.ageRating}</dd></div> : null}<div><dt>{t("detail.metadata")}</dt><dd>{game.metadataProvider}</dd></div>{game.executablePath ? <div><dt>{t("detail.executable")}</dt><dd>{game.executablePath.split(/[\\/]/).pop()}</dd></div> : null}</dl>
+            <dl className="game-detail__specs"><div><dt>{t("detail.developer")}</dt><dd>{game.developer}</dd></div><div><dt>{t("detail.publisher")}</dt><dd>{game.publisher}</dd></div><div><dt>{t("detail.release")}</dt><dd>{game.releaseDate}</dd></div>{game.ageRating !== "Non renseigné" ? <div><dt>{t("detail.rating")}</dt><dd>{game.ageRating}</dd></div> : null}</dl>
+            <div className="game-detail__technical">{game.metadataProvider?<span>{t('detail.metadata')} · {game.metadataProvider}</span>:null}{game.executablePath?<span>{t('detail.executable')} · {game.executablePath.split(/[\\/]/).pop()}</span>:null}</div>
+            {game.screenshots?.length?<section className="game-detail__moments" aria-label={copy.media}><header><span className="screen-kicker">{copy.media}</span><button className="screen-tool" type="button" onClick={()=>{setTab('media');tabs.current?.querySelector<HTMLButtonElement>('#detail-tab-media')?.focus();}}>{copy.allMedia}</button></header><ScreenshotGallery images={game.screenshots.slice(0,3)} title={game.title}/></section>:null}
           </> : null}
           {tab === "media" ? <div className="game-media-panel">{game.trailer.url ? <button className="game-detail__media" onClick={() => setTrailerOpen(true)} type="button"><img src={game.artwork} alt="" onError={(event) => applyImageFallback(event, [...(game.artworkFallbacks || []), game.heroArtwork])} /><span><Play size={26} weight="fill" /><strong>{game.trailer.title[locale]}</strong><small>{game.trailers?.length || 1} · {t('trailer.label')}</small></span></button> : null}{game.screenshots?.length ? <ScreenshotGallery images={game.screenshots} title={game.title} /> : null}</div> : null}
           {tab === "achievements" ? <SteamAchievements appId={game.steamAppId} locale={locale} /> : null}

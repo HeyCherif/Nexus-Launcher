@@ -16,13 +16,14 @@ async function registryPaths(provider) {
   let script=names[provider].map(([key,name])=>`$entry=Get-Item -LiteralPath '${key}' -ErrorAction SilentlyContinue;if($entry){$value=$entry.GetValue('${name}');if($value){Write-Output $value}}`).join(';');
   script+=`; $entry=Get-Item -LiteralPath 'Registry::HKEY_CLASSES_ROOT\\${protocol}\\shell\\open\\command' -ErrorAction SilentlyContinue;if($entry){$value=$entry.GetValue('');if($value -match '^"([^"\r\n]+\\.exe)"'){Write-Output $Matches[1]}}`;
   if(provider==='gog')for(const key of ['HKLM:\\SOFTWARE\\GOG.com\\GalaxyClient','HKLM:\\SOFTWARE\\WOW6432Node\\GOG.com\\GalaxyClient'])script+=`; $entry=Get-Item -LiteralPath '${key}' -ErrorAction SilentlyContinue;if($entry){$value=$entry.GetValue('path');if($value){Write-Output (Join-Path $value 'GalaxyClient.exe')}}`;
-  try {const {stdout}=await exec('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,timeout:4000,maxBuffer:8192});return stdout.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);}catch{return [];}
+  const {stdout}=await exec('powershell.exe',['-NoProfile','-NonInteractive','-Command',script],{windowsHide:true,timeout:4000,maxBuffer:8192});return stdout.split(/\r?\n/).map(value=>value.trim()).filter(Boolean);
 }
-export function createStoreClientOpener({platform=process.platform,env=process.env,registryPaths:readRegistry=registryPaths,fileStat=stat,spawnClient=spawn}={}) {
+export function createStoreClientDetector({platform=process.platform,env=process.env,registryPaths:readRegistry=registryPaths,fileStat=stat}={}) {
   return async provider=>{
     if(!Object.hasOwn(executableNames,provider))throw Error('Unsupported store provider.');
-    if(platform!=='win32')return false;
-    const installed=await readRegistry(provider).catch(()=>[]);
+    if(platform!=='win32')return null;
+    let registryFailed=false;
+    const installed=await readRegistry(provider).then(paths=>[...paths],()=>{registryFailed=true;return [];});
     for(const root of [env.ProgramFiles,env['ProgramFiles(x86)'],env.LOCALAPPDATA].filter(Boolean)){
       if(provider==='steam')installed.push(win32.join(root,'Steam','steam.exe'));
       if(provider==='epic')for(const arch of ['Win64','Win32'])installed.push(win32.join(root,'Epic Games','Launcher','Portal','Binaries',arch,'EpicGamesLauncher.exe'));
@@ -32,11 +33,22 @@ export function createStoreClientOpener({platform=process.platform,env=process.e
       if(!win32.isAbsolute(file)||win32.basename(file).toLowerCase()!==executableNames[provider].toLowerCase())continue;
       try{
         if(!(await fileStat(file)).isFile())continue;
-        await new Promise((resolve,reject)=>{const child=spawnClient(file,[],{detached:true,stdio:'ignore',windowsHide:false,shell:false});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
-        return true;
+        return file;
       }catch{}
     }
-    return false;
+    if(registryFailed)throw Error('Store detection unavailable.');
+    return null;
+  };
+}
+export function createStoreClientOpener({spawnClient=spawn,...options}={}) {
+  const detect=createStoreClientDetector(options);
+  return async provider=>{
+    const file=await detect(provider).catch(error=>{if(!Object.hasOwn(executableNames,provider))throw error;return null;});
+    if(!file)return false;
+    try{
+      await new Promise((resolve,reject)=>{const child=spawnClient(file,[],{detached:true,stdio:'ignore',windowsHide:false,shell:false});child.once('error',reject);child.once('spawn',()=>{child.unref();resolve();});});
+      return true;
+    }catch{return false;}
   };
 }
 

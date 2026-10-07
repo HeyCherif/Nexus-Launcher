@@ -14,6 +14,7 @@ contextBridge.exposeInMainWorld("nexusDesktop", Object.freeze({
   getSteamGridStatus: () => ipcRenderer.invoke("nexus:steamgrid-status"),
   getSteamAccountStatus: () => ipcRenderer.invoke("nexus:steam-account-status"),
   connectSteamAccount: () => ipcRenderer.invoke('nexus:steam-account-connect'),
+  inspectSetup: () => ipcRenderer.invoke('nexus:setup-inspect'),
   cancelSteamConnection: () => ipcRenderer.invoke('nexus:steam-account-cancel'),
   onSteamDataChanged: (callback) => { const listener = () => callback(); ipcRenderer.on('nexus:steam-data-changed',listener);return () => ipcRenderer.removeListener('nexus:steam-data-changed',listener); },
   getAchievementNotificationSettings: () => ipcRenderer.invoke('nexus:achievement-notification-settings'),

@@ -29,6 +29,7 @@ import { LocalSteamProgress } from "./steamLocal.mjs";
 import { SteamAchievements as BrowserSteamAccount } from './steamAchievements.mjs';
 import { SteamOpenId, createSteamBrowserLauncher } from './steamOpenId.mjs';
 import { createStoreClientOpener, SteamConnection } from './storeClient.mjs';
+import { inspectLocalSetup } from './setupDiagnostics.mjs';
 import { SanInstaller } from "./sanInstaller.mjs";
 
 import { StoreAccounts } from './storeAccounts.mjs';
@@ -331,6 +332,7 @@ function registerIpc() {
   });
   ipcMain.handle("nexus:steamgrid-status", async () => getSecretStore().status());
   ipcMain.handle("nexus:steam-account-status", async () => getSteamAchievements().status());
+  accountIpc('nexus:setup-inspect',()=>inspectLocalSetup());
   accountIpc('nexus:steam-account-connect',async()=>{const result=await getSteamAchievements().connect();broadcastSteamData();return result;});
   accountIpc('nexus:steam-account-cancel',()=>{getSteamAchievements().cancel();return getSteamAchievements().status();});
   accountIpc('nexus:steam-notification-status',()=>getSanInstaller().status());

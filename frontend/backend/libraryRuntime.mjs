@@ -2,6 +2,7 @@ import { createReadStream } from "node:fs";
 import { mkdir, readFile, readdir, realpath, stat, writeFile } from "node:fs/promises";
 import { extname, basename, dirname, join, resolve, sep } from "node:path";
 import { spawn } from "node:child_process";
+import { inspectLocalSetup } from './setupDiagnostics.mjs';
 import { userInfo } from "node:os";
 import { createHash } from "node:crypto";
 import { LibraryRegistry } from "./libraryRegistry.mjs";
@@ -429,6 +430,10 @@ export function localLibraryPlugin() {
             response.end(JSON.stringify({ items }));
             return;
           }
+          if (url.pathname === "/api/library/setup" && request.method === "GET") {
+            response.setHeader('Content-Type','application/json; charset=utf-8');
+            response.end(JSON.stringify(await inspectLocalSetup()));return;
+          }
           if (url.pathname === "/api/library/system" && request.method === "GET") {
             const profileName = userInfo().username || "Joueur";
             response.setHeader("Content-Type", "application/json; charset=utf-8");
@@ -484,4 +489,3 @@ export function localLibraryPlugin() {
     },
   };
 }
-

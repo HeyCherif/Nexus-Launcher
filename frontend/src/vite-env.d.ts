@@ -2,6 +2,7 @@
 
 interface Window {
   nexusDesktop?: {
+    inspectSetup: () => Promise<import('./setupTypes').SetupInspection>;
     getSavesStatus: () => Promise<import('./savesTypes').SavesStatus>;
     activateSaves: () => Promise<import('./savesTypes').SavesStatus>;
     cancelSavesSetup: () => Promise<import('./savesTypes').SavesStatus>;
