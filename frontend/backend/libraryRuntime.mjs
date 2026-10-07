@@ -4,6 +4,8 @@ import { extname, basename, dirname, join, resolve, sep } from "node:path";
 import { spawn } from "node:child_process";
 import { inspectLocalSetup } from './setupDiagnostics.mjs';
 import { publishedDownloads } from './plugins/publishedDownloads.mjs';
+import {FreeGames} from './modules/freeGames.mjs';
+const freeGames=new FreeGames();
 import { userInfo } from "node:os";
 import { createHash } from "node:crypto";
 import { LibraryRegistry } from "./libraryRegistry.mjs";
@@ -364,6 +366,9 @@ export function localLibraryPlugin() {
         const root = url.searchParams.get("root") || runtimeConfig.libraryRoot;
         response.setHeader("Cache-Control", "no-store");
         try {
+          if(url.pathname==='/api/library/free-games'&&request.method==='GET'){
+            response.setHeader('Content-Type','application/json; charset=utf-8');response.end(JSON.stringify(await freeGames.list(url.searchParams.get('refresh')==='true')));return;
+          }
           if (url.pathname === '/api/library/plugins' && request.method === 'GET') {
             response.setHeader('Content-Type','application/json; charset=utf-8');
             response.end(JSON.stringify(await publishedDownloads({force:url.searchParams.get('refresh')==='true'})));return;

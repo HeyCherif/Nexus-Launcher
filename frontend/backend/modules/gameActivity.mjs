@@ -57,4 +57,10 @@ export class GameActivity {
       sessions:this.sessions.filter(s => s.gameId === gameId).slice(-10).reverse().map(s => ({...s}))};
   }
   async stop() { await this.writes; }
+  async overview() {
+    await this.load(); await this.writes;
+    if(this.readError)return {source:'Nexus',state:'unavailable',sessions:[]};
+    const completed=this.sessions.filter(session=>session.state==='completed'&&Number.isFinite(session.durationSeconds));
+    return {source:'Nexus',state:'ready',totalSeconds:completed.reduce((total,session)=>total+session.durationSeconds,0),completedSessions:completed.length,retainedSessions:this.sessions.length,sessions:[...this.sessions].sort((a,b)=>Date.parse(b.startedAt)-Date.parse(a.startedAt)).slice(0,50).map(session=>({...session}))};
+  }
 }

@@ -18,7 +18,7 @@
 | ☐ | Nexus Capture / Replay | Captures PNG, galerie, replay 30 s / 720p / 30 fps, plugin téléchargé séparément | Audio, durées 1/3/5 min, commandes Share/Guide et validation d'une capture réelle en jeu |
 | ☐ | Nexus Cloud Saves | Plugin Nexus Saves/Ludusavi, sauvegarde locale, cinq versions, restauration protégée et sauvegarde automatique facultative | Véritable synchronisation cloud/rclone, authentification des services, gestion des conflits et preuve d'envoi |
 | ☐ | Nexus Quick Resume Lite | — | Suspension/reprise en RAM, suivi des processus et compatibilité des jeux |
-| ☐ | Nexus Game Activity | Sessions, temps de jeu et historique persistants | FPS, CPU/GPU/RAM, températures, consommation et bilans complets |
+| ☐ | Nexus Game Activity | Sessions persistantes et nouveau tableau global dans Extensions : temps enregistré, sessions terminées, historique multi-jeux | FPS, CPU/GPU/RAM, températures, consommation et bilans complets |
 | ☐ | Nexus Quick Menu | — | Overlay à la manette, volume, microphone, écran, Wi-Fi et commandes de jeu |
 | ☐ | Controller Profiles | Navigation générale à la manette | Mapping par jeu, combinaisons, appuis courts/longs/doubles et profils |
 | ☐ | How Long To Beat | — | Estimations de durée et comparaison au temps joué |
@@ -27,10 +27,17 @@
 | ☐ | Discord Presence | — | Rich Presence, minuterie et illustrations |
 | ☐ | Nexus Remote | — | Appairage sécurisé du téléphone, bibliothèque et commandes à distance |
 | ☐ | Mods Hub | — | Catalogue, installation/mise à jour et compatibilité des mods |
-| ☐ | Deals / Free Games | — | Offres vérifiées, jeux gratuits et filtres |
+| ☐ | Deals / Free Games | Nouveau module Jeux gratuits : offres PC GamerPower à la demande, actualisation, retrait des offres expirées et liens vers leurs pages | Comparaison des promotions/prix et filtres par boutique |
 | ☐ | Game Mode | — | Profils de performance réversibles et restauration après le jeu |
 
 - [ ] Performance Overlay : sous-module encore à développer (FPS/frametimes, CPU/GPU, mémoire et températures).
+
+## Nouveaux modules légers inclus
+
+- [x] Nexus Activity : fenêtre globale des sessions et durées réellement suivies par Nexus, avec état indisponible distinct d'un historique vide. Usage dans l'application Windows.
+- [x] Jeux gratuits : fenêtre d'offres PC venant de GamerPower, sans clé API ; chargement explicite, actualisation et liens vers les pages du fournisseur. Utilisable aussi dans l'aperçu.
+
+Ces deux modules n'installent pas de binaire et ne nécessitent pas un paquet GitHub séparé. Les offres ne sont pas des jeux automatiquement ajoutés à la bibliothèque.
 
 ## Tests de téléchargement réels
 

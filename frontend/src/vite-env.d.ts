@@ -43,6 +43,9 @@ interface Window {
     openSanDownload: () => Promise<{ok:true}>;
     getSteamLibrary: (force?: boolean) => Promise<import('./storeAccountsTypes').StoreLibraryResult>;
     getGameActivity: (gameId:string) => Promise<import('./activityTypes').GameActivityResult>;
+    getActivityOverview: () => Promise<import('./extensionHubTypes').ActivityOverview>;
+    getFreeGames: (force?:boolean) => Promise<import('./extensionHubTypes').FreeGamesResult>;
+    openFreeGame: (id:number) => Promise<{ok:true}>;
     getModuleStatus: () => Promise<Array<{id:string;state:string}>>;
     listCaptures: () => Promise<import('./captureTypes').CaptureLibrary>;
     captureScreenshot: (locale?:'fr'|'en') => Promise<{ok:true;id:string}>;

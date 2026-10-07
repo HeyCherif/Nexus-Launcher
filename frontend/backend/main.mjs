@@ -5,6 +5,8 @@ import { spawn } from "node:child_process";
 import { randomUUID } from 'node:crypto';
 import { EventBus, ModuleHost } from './core/moduleHost.mjs';
 import { GameActivity } from './modules/gameActivity.mjs';
+import {FreeGames} from './modules/freeGames.mjs';
+const freeGames=new FreeGames();
 import { AchievementsModule } from './modules/achievements.mjs';
 import { NotificationOverlayModule } from './overlay/notifications.mjs';
 import { CaptureModule } from './modules/capture.mjs';
@@ -340,6 +342,9 @@ function registerIpc() {
   accountIpc('nexus:steam-notification-cancel',async()=>{getSanInstaller().cancel();return getSanInstaller().status();});
   accountIpc('nexus:steam-open',async()=>{await openSteam();return {ok:true};});
   accountIpc('nexus:game-activity',(_event,gameId)=>gameActivity.history(gameId));
+  accountIpc('nexus:activity-overview',()=>gameActivity.overview());
+  accountIpc('nexus:free-games',(_event,force)=>freeGames.list(force===true));
+  accountIpc('nexus:free-game-open',async(_event,id)=>{const offer=await freeGames.offer(id);await shell.openExternal(offer.url);return {ok:true};});
   accountIpc('nexus:module-status',()=>modules.status());
   accountIpc('nexus:capture-list',()=>captureModule.list());
   accountIpc('nexus:capture-screenshot',(_event,locale)=>captureModule.captureAction(false,locale));
@@ -471,6 +476,7 @@ async function createWindow() {
   window.on('focus',()=>{if(steamAchievements)broadcastSteamData();});
   window.once('closed',()=>{achievementMonitor?.stopAll();achievementOverlay?.dispose();if(mainWindow===window)mainWindow=null;});
   window.webContents.setWindowOpenHandler(({ url }) => {
+    if(url==='https://www.gamerpower.com/'||url==='https://www.gamerpower.com')void shell.openExternal(url);
     if (/^https:\/\/store\.steampowered\.com\//i.test(url)) void shell.openExternal(url);
     if (/^https:\/\/github\.com\/zamakz641-byte\/Nexus-Launcher(?:\/|$)/.test(url)) void shell.openExternal(url);
     return { action: "deny" };

@@ -5,6 +5,13 @@ import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {EventBus,ModuleHost} from '../backend/core/moduleHost.mjs';
 import {GameActivity} from '../backend/modules/gameActivity.mjs';
+test('activity overview counts only completed measured sessions and never invents interrupted playtime',async()=>{
+ const dir=await mkdtemp(join(tmpdir(),'nexus-activity-overview-'));
+ try {const activity=new GameActivity(dir);await activity.load();activity.sessions=[{sessionId:'one',gameId:'game',title:'Game',startedAt:'2026-10-07T10:00:00Z',state:'completed',durationSeconds:125},{sessionId:'two',gameId:'other',title:'Other',startedAt:'2026-10-07T11:00:00Z',state:'interrupted',durationSeconds:null}];
+ const result=await activity.overview();assert.equal(result.totalSeconds,125);assert.equal(result.completedSessions,1);assert.equal(result.sessions[0].sessionId,'two');assert.equal(result.sessions[0].durationSeconds,null);
+ activity.readError=true;const failed=await activity.overview();assert.equal(failed.state,'unavailable');assert.equal(failed.totalSeconds,undefined);
+ } finally {await rm(dir,{recursive:true,force:true});}
+});
 
 test('listener failures are isolated, events immutable, disposal removes subscriptions',async()=>{
   const bus=new EventBus(),host=new ModuleHost(bus),seen=[];
