@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 import { steamConsoleCopy } from '../steamConsoleCopy';
 import { accountsCopy } from '../accountsCopy';
 import type { StoreLibraryResult } from '../storeAccountsTypes';
-export function SteamPlaytime({appId,locale}:{appId?:number;locale:'fr'|'en'}) {
+export function SteamPlaytime({appId,locale,alwaysShow=false}:{alwaysShow?:boolean;appId?:number;locale:'fr'|'en'}) {
   const desktop=window.nexusDesktop,copy=accountsCopy[locale],c=steamConsoleCopy[locale];
   const [result,setResult]=useState<StoreLibraryResult>(),[loading,setLoading]=useState(false);const generation=useRef(0);
   const load=useCallback(async(force=false)=>{
@@ -14,7 +14,7 @@ export function SteamPlaytime({appId,locale}:{appId?:number;locale:'fr'|'en'}) {
     finally{if(revision===generation.current)setLoading(false);}
   },[appId,desktop]);
   useEffect(()=>{setResult(undefined);void load();const unsubscribe=desktop?.onSteamDataChanged?.(()=>void load());return()=>{generation.current++;unsubscribe?.();};},[load,desktop]);
-  if(!appId||!desktop)return null;
+  if(!appId||!desktop)return alwaysShow?<div className='steam-playtime'><Clock size={26}/><span><small>{copy.playtime}</small><strong>—</strong></span></div>:null;
   const minutes=result?.games.find(game=>game.id===String(appId))?.playtimeMinutes;
   const setup=result?.state==='unconfigured';
   const message=result?.state==='ready'?c.unavailable:result?copy[result.state as keyof typeof copy]:copy.loading;
