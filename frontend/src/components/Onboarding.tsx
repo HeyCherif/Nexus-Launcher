@@ -32,6 +32,9 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
   const importRevision = useRef(0);
   const locale = useNexusStore((state) => state.locale);
   const theme = useNexusStore((state) => state.theme);
+  const games = useNexusStore((state) => state.discoveredGames);
+  const scanState = useNexusStore((state) => state.libraryScanState);
+  const detectedLibrary = scanState === 'ready' && games.length > 0;
   const copy=setupCopy[locale];
   const setLocale = useNexusStore((state) => state.setLocale);
   const setTheme = useNexusStore((state) => state.setTheme);
@@ -88,10 +91,10 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
       {open ? (
         <motion.section className="onboarding" role="dialog" aria-modal="true" aria-label={t("onboarding.label")} initial={false} exit={{ opacity: 0 }} transition={{ duration: reducedMotion ? 0 : 0.28 }} onKeyDown={(event) => {
           if (event.key !== "Tab") return;
-          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLButtonElement>('button:not(:disabled)'));
+          const buttons = Array.from(event.currentTarget.querySelectorAll<HTMLElement>('button:not(:disabled), summary')).filter(node=>node.getClientRects().length>0);
           if (!buttons.length) return;
           event.preventDefault();
-          const index = buttons.indexOf(document.activeElement as HTMLButtonElement);
+          const index = buttons.indexOf(document.activeElement as HTMLElement);
           buttons[(index + (event.shiftKey ? -1 : 1) + buttons.length) % buttons.length]?.focus();
         }}>
           <motion.div className="onboarding__ambient" initial={reducedMotion ? false : { opacity: 0, scale: 0.88 }} animate={{ opacity: 0.62, scale: 1 }} transition={{ duration: 1.15, ease: [0.22, 1, 0.36, 1] }} />
@@ -114,11 +117,13 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
                 {step === 0 ? (
                   <>
                     <span className="onboarding__eyebrow">{copy.steps[0]}</span>
-                    <h1 style={{ whiteSpace: "pre-line" }}>{copy.hero}</h1>
+                    <h1>{copy.hero}</h1>
                     <p>{copy.description}</p>
+                    {detectedLibrary && !importMessage ? <div className="onboarding__detected" role="status"><Check size={20}/><span><strong>{games.length} {copy.games}</strong><small>{copy.useDetected}</small></span></div> : null}
                     <div className="onboarding__folder-actions">
                       <button className="onboarding__next" disabled={importing} onClick={() => void addFolder()} type="button"><FolderSimplePlus size={22} />{t(importing ? "onboarding.scanning" : "onboarding.chooseFolder")}</button>
                       <button className="onboarding__auto" disabled={importing} aria-pressed={libraryChoice && !folder} onClick={() => void useStores()} type="button">{t("onboarding.useStores")}</button>
+                      <button className="onboarding__defer" disabled={importing} onClick={()=>setStep(1)} type="button">{copy.addLater}</button>
                     </div>
                     {folder ? <p className="onboarding__folder-path">{folder}</p> : null}
                     {importMessage ? <p className="onboarding__import-status" role="status">{importMessage}</p> : null}
@@ -137,7 +142,7 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
                         <button data-selected={locale === "en"} onClick={() => chooseLocale("en")} type="button">English</button>
                       </div>
                       <div className="choice-group" role="group" aria-label={t("onboarding.theme")}>
-                        {(["obsidienne", "solaris"] as ThemeId[]).map((id) => <button data-selected={theme === id} key={id} onClick={() => setTheme(id)} type="button">{t(`system.${id}`)}</button>)}
+                        {(["obsidienne", "solaris"] as ThemeId[]).map((id) => <button className="onboarding__theme" data-theme-preview={id} data-selected={theme === id} aria-pressed={theme===id} key={id} onClick={() => setTheme(id)} type="button"><span className="onboarding__theme-swatch" aria-hidden="true"/><span>{t(`system.${id}`)}</span>{theme===id&&<Check size={16}/>}</button>)}
                       </div>
                     </div>
                   </>
@@ -149,6 +154,7 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
                     <span className="onboarding__eyebrow">{t("onboarding.control")}</span>
                     <h1>{copy.ready}</h1>
                     <p>{copy.readyDesc}</p>
+                    <div className="onboarding__summary"><div><Check size={18}/><span>{games.length ? `${games.length} ${copy.games}` : copy.emptyLibrary}</span></div><div><GlobeHemisphereWest size={18}/><span>{locale==='fr'?'Français':'English'}</span></div><div><Sparkle size={18}/><span>{t(`system.${theme}`)}</span></div></div>
                     {notifications.desktop?.activateSteamNotifications&&<button className="onboarding-notification-choice" type="button" role="checkbox" aria-checked={notifyChoice} onClick={()=>setNotifyChoice(value=>!value)}><Trophy size={27} weight="duotone"/><span><strong>{notifyCopy.onboarding}</strong><small>{notifications.busy?notifyCopy.downloading+' '+(notifications.status?.progress||0)+'%':notifyCopy.onboardingHint}</small></span><i>{notifyChoice&&<Check size={17} weight="bold"/>}</i></button>}
                     <div className="control-demo" aria-hidden="true"><kbd>↑</kbd><span><kbd>←</kbd><kbd>↓</kbd><kbd>→</kbd></span><i /><kbd className="control-demo__confirm">A</kbd></div>
                   </>
@@ -162,7 +168,7 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
             <footer className="onboarding__footer">
               <button className="screen-tool onboarding__back" disabled={step===0||importing} type="button" onClick={()=>setStep(current=>current-1)}><ArrowLeft size={18}/>{copy.back}</button>
               <div className="onboarding__progress" aria-label={t("onboarding.step", { current: step + 1, total: steps.length })}>{steps.map((item, index) => <span data-active={index <= step} key={item} />)}</div>
-              <button className="onboarding__next" disabled={importing || (step === 0 && !libraryChoice)} onClick={next} type="button"><span>{step === steps.length - 1 ? t("onboarding.enter") : t("onboarding.continue")}</span><Sparkle size={18} weight="fill" /></button>
+              <button className="onboarding__next" disabled={importing || (step === 0 && !libraryChoice && !detectedLibrary)} onClick={next} type="button"><span>{step === steps.length - 1 ? t("onboarding.enter") : t("onboarding.continue")}</span><Sparkle size={18} weight="fill" /></button>
             </footer>
           </div>
         </motion.section>

@@ -1,9 +1,27 @@
 // @vitest-environment jsdom
 import '../i18n';
 import { render, fireEvent, cleanup, waitFor, act } from '@testing-library/react';
-import { afterEach, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { Onboarding } from './Onboarding';
 import { libraryClient } from '../services/libraryClient';
+import {useNexusStore} from '../state/useNexusStore';
+import type {Game} from '../types';
+
+beforeEach(()=>{useNexusStore.setState({discoveredGames:[],libraryScanState:'idle',locale:'fr'});});
+it('existing successfully detected games can continue without selecting the folder again',async()=>{
+ useNexusStore.setState({discoveredGames:[{id:'existing',title:'Existing game',artwork:'/cover.png'} as Game],libraryScanState:'ready'});
+ const view=render(<Onboarding open onComplete={vi.fn()} onAddFolder={vi.fn()}/>);
+ const next=view.getByRole('button',{name:'Continuer'});expect(next.hasAttribute('disabled')).toBe(false);fireEvent.click(next);
+ expect(await view.findByRole('heading',{name:'À votre image.'})).toBeTruthy();
+});
+it('an empty library can be configured later without skipping personalization and the final summary',async()=>{
+ const complete=vi.fn(),view=render(<Onboarding open onComplete={complete} onAddFolder={vi.fn()}/>);
+ fireEvent.click(view.getByRole('button',{name:'Ajouter mes jeux plus tard'}));
+ await view.findByRole('heading',{name:'À votre image.'});expect(complete).not.toHaveBeenCalled();
+ fireEvent.click(view.getByRole('button',{name:'Continuer'}));
+ expect(await view.findByText('Vos jeux pourront être ajoutés depuis la bibliothèque.')).toBeTruthy();
+ fireEvent.click(view.getByRole('button',{name:/Entrer/i}));expect(complete).toHaveBeenCalledOnce();
+});
 afterEach(()=>{cleanup();delete window.nexusDesktop;vi.restoreAllMocks();});
 it('a late folder choice cannot validate a reopened setup',async()=>{
  let finish!:(value:{folder:string;count:number})=>void;
