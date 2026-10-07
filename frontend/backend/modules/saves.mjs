@@ -14,7 +14,7 @@ export class SavesModule{
  async preferences(){try{const prefs=JSON.parse(await readFile(this.file,'utf8'));return {destination:typeof prefs.destination==='string'?prefs.destination:undefined,automatic:prefs.automatic===true};}catch{return {automatic:false};}}
  async persist(prefs){await mkdir(dirname(this.file),{recursive:true});await writeFile(this.file+'.tmp',JSON.stringify(prefs));await rename(this.file+'.tmp',this.file);this.tokens.clear();}
  enqueue(action){if(this.closed)return Promise.reject(Error('module-stopped'));const task=this.queue.then(async()=>{this.busy=true;try{return await action();}finally{this.busy=false;}});this.queue=task.catch(()=>{});return task;}
- async status(refresh=false){return {...await this.manager.status({refresh}),...await this.preferences(),busy:this.busy,last:this.last,error:this.error};}
+ async status(refresh=false,force=false){return {...await this.manager.status({refresh,force}),...await this.preferences(),busy:this.busy,last:this.last,error:this.error};}
  chooseDestination(path){return this.enqueue(async()=>{
   const parent=await realpath(path);if(!(await stat(parent)).isDirectory())throw Error('invalid-folder');
   const target=join(parent,'Nexus Saves');await mkdir(target,{recursive:true});const canonical=await realpath(target),child=relative(parent,canonical);

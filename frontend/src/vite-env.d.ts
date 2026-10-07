@@ -3,7 +3,7 @@
 interface Window {
   nexusDesktop?: {
     inspectSetup: () => Promise<import('./setupTypes').SetupInspection>;
-    getSavesStatus: () => Promise<import('./savesTypes').SavesStatus>;
+    getSavesStatus: (force?: boolean) => Promise<import('./savesTypes').SavesStatus>;
     activateSaves: () => Promise<import('./savesTypes').SavesStatus>;
     cancelSavesSetup: () => Promise<import('./savesTypes').SavesStatus>;
     disableSaves: () => Promise<import('./savesTypes').SavesStatus>;
@@ -49,7 +49,7 @@ interface Window {
     addCaptureFolder: () => Promise<import('./captureTypes').CaptureLibrary|null>;
     favoriteCapture: (id:string,value:boolean) => Promise<import('./captureTypes').CaptureLibrary>;
     revealCapture: (id:string) => Promise<{ok:true}>;
-    getCaptureEngineStatus: () => Promise<import('./captureTypes').CaptureEngineStatus>;
+    getCaptureEngineStatus: (force?: boolean) => Promise<import('./captureTypes').CaptureEngineStatus>;
     activateCaptureEngine: () => Promise<import('./captureTypes').CaptureEngineStatus>;
     cancelCaptureEngineSetup: () => Promise<import('./captureTypes').CaptureEngineStatus>;
     disableCaptureEngine: () => Promise<import('./captureTypes').CaptureEngineStatus>;

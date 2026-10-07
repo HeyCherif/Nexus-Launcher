@@ -164,7 +164,12 @@
 .extensions-grid .nexus-plugin-card { margin: 0; max-width: none; flex: 1; grid-template-columns: 3.5rem minmax(0,1fr); padding: 1.5rem; gap: 1rem; align-content: start; align-items: start; }
 .extensions-grid .nexus-plugin-heading h2 { color: var(--color-foreground); font-size: 1.35rem; font-weight: 450; }
 .extensions-grid .nexus-plugin-heading p, .extensions-grid .nexus-plugin-heading small, .extensions-grid summary { color: var(--color-muted); }
-.extensions-grid .capture-actions { grid-column: 1 / -1; flex-wrap: wrap; padding-top: .4rem; }
+.extensions-grid .capture-actions { display:flex; grid-column: 1 / -1; flex-wrap: wrap; gap:.75rem; padding-top: .6rem; }
+.extensions-grid .plugin-preview-download { display:grid; gap:.65rem; width:100%; max-width:none; }
+.plugin-preview-platform { display:inline-flex; align-items:center; gap:.6rem; color:var(--color-muted); font-size:.8rem; }
+.extensions-grid .nexus-plugin-card progress { height:5px; margin: .25rem 0 .5rem; border-radius:999px; }
+.extensions-grid .nexus-plugin-card details { padding-top:.6rem; border-top:1px solid var(--glass-edge); }
+.extensions-grid .nexus-plugin-card summary { padding:.4rem 0; }
 .extensions-grid .nexus-plugin-symbol { color: var(--color-focus); }
 .extensions-grid .nexus-plugin-symbol svg { color: inherit; }
 .extensions-grid .nexus-plugin-card details, .extensions-grid .nexus-plugin-card progress, .extensions-grid .nexus-plugin-card .plugin-error, .extensions-grid .saves-plugin-settings { grid-column: 1 / -1; }

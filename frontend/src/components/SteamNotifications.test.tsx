@@ -1,6 +1,9 @@
 // @vitest-environment jsdom
 import React from 'react';import {cleanup,render,screen,fireEvent,waitFor} from '@testing-library/react';import {afterEach,expect,test,vi} from 'vitest';import {SteamNotifications} from './SteamNotifications';
 afterEach(()=>{cleanup();delete window.nexusDesktop;});
+test('browser preview explains desktop installation without an external download',()=>{
+ render(<SteamNotifications locale="en"/>);expect(screen.getByText('Install in Nexus for Windows')).toBeTruthy();expect(screen.queryByRole('link',{name:'Download SAN'})).toBeNull();expect(screen.queryByRole('button',{name:'Enable'})).toBeNull();
+});
 test('missing companion offers activation even when saved preference was enabled',async()=>{
  const status={enabled:true,installed:false,supported:true,state:'idle',progress:0};window.nexusDesktop={getSteamNotificationStatus:vi.fn().mockResolvedValue(status),activateSteamNotifications:vi.fn()} as unknown as NonNullable<Window['nexusDesktop']>;
  render(<SteamNotifications locale="en"/>);await screen.findByRole('button',{name:'Enable'});expect(screen.queryByRole('button',{name:'Disable'})).toBeNull();

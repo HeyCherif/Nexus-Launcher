@@ -349,13 +349,13 @@ function registerIpc() {
     return result.canceled?null:captureModule.addFolder(result.filePaths[0]);
   });
   accountIpc('nexus:capture-reveal',async(_event,id)=>{const item=await captureModule.authorize(id);if(!item)throw Error('invalid-media');shell.showItemInFolder(item.file);return {ok:true};});
-  accountIpc('nexus:capture-engine-status',async()=>({...await getReplay().status({refresh:true}),shortcut:globalShortcut.isRegistered('CommandOrControl+Shift+F8')}));
+  accountIpc('nexus:capture-engine-status',async(_event,force)=>({...await getReplay().status({refresh:true,force:force===true}),shortcut:globalShortcut.isRegistered('CommandOrControl+Shift+F8')}));
   accountIpc('nexus:capture-engine-activate',async()=>{const status=await getReplay().status();return status.installed?getReplay().enable(true):getReplay().activate();});
   accountIpc('nexus:capture-engine-cancel',async()=>{getPluginManager().cancel();return getReplay().status();});
   accountIpc('nexus:capture-engine-disable',()=>getReplay().enable(false));
   accountIpc('nexus:capture-engine-remove',()=>getReplay().remove());
   accountIpc('nexus:capture-replay',(_event,locale)=>captureModule.captureAction(true,locale));
-  accountIpc('nexus:saves-status',()=>savesModule.status(true));
+  accountIpc('nexus:saves-status',(_event,force)=>savesModule.status(true,force===true));
   accountIpc('nexus:saves-activate',()=>savesModule.activate());
   accountIpc('nexus:saves-cancel',()=>{savesManager.cancel();return savesModule.status();});
   accountIpc('nexus:saves-disable',()=>savesModule.enable(false));

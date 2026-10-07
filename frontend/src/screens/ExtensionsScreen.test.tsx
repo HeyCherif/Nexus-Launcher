@@ -22,5 +22,5 @@ it('empty search offers reset and preview never claims plugins installed',()=>{
  expect(view.getByRole('status').textContent).toMatch(/Aucune extension/);
  fireEvent.click(view.getByRole('button',{name:'Tout afficher'}));
  expect(view.getByRole('heading',{name:'Nexus Replay'})).toBeTruthy();
- expect(view.getByText(/Installation disponible dans l’application Windows/)).toBeTruthy();
+ expect(view.getByText(/installation intégrée dans Nexus pour Windows/)).toBeTruthy();
 });

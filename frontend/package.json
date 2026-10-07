@@ -10,7 +10,7 @@
   "scripts": {
     "dev": "vite",
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/library-registry.test.mjs tests/steamgrid-secret.test.mjs tests/store-discovery.test.mjs tests/media-cache.test.mjs tests/game-session.test.mjs tests/catalog-media.test.mjs tests/steam-achievements.test.mjs tests/steam-openid.test.mjs tests/achievement-notifications.test.mjs tests/achievement-overlay.test.mjs tests/san-companion.test.mjs tests/san-install.test.mjs tests/steam-local.test.mjs tests/modules.test.mjs tests/store-accounts.test.mjs tests/store-client.test.mjs tests/setup-diagnostics.test.mjs tests/plugins.test.mjs tests/saves.test.mjs tests/library-runtime.test.mjs tests/capture.test.mjs tests/capture-media.test.mjs tests/gamehq.test.mjs tests/gamehq-install.test.mjs && vitest run",
+    "test": "node --test tests/library-registry.test.mjs tests/steamgrid-secret.test.mjs tests/store-discovery.test.mjs tests/media-cache.test.mjs tests/game-session.test.mjs tests/catalog-media.test.mjs tests/steam-achievements.test.mjs tests/steam-openid.test.mjs tests/achievement-notifications.test.mjs tests/achievement-overlay.test.mjs tests/san-companion.test.mjs tests/san-install.test.mjs tests/steam-local.test.mjs tests/modules.test.mjs tests/store-accounts.test.mjs tests/store-client.test.mjs tests/setup-diagnostics.test.mjs tests/plugins.test.mjs tests/published-downloads.test.mjs tests/saves.test.mjs tests/library-runtime.test.mjs tests/capture.test.mjs tests/capture-media.test.mjs tests/gamehq.test.mjs tests/gamehq-install.test.mjs && vitest run",
     "qa:capture": "node scripts/capture-suite.mjs",
     "build": "vite build && node scripts/prepare-sites-build.mjs",
     "preview": "vite preview",

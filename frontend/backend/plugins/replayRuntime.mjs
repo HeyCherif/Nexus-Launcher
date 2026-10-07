@@ -5,7 +5,7 @@ import {randomUUID} from 'node:crypto';
 const methods=['start-buffer','stop-buffer','save-replay','screenshot','status'];
 export class ReplayRuntime {
  constructor(manager,{capturesRoot,spawn:launch=spawn,onSaved=async()=>{}}={}){Object.assign(this,{manager,capturesRoot,launch,onSaved});this.sessions=new Map();this.requests=new Map();this.saves=new Set();this.bufferState=0;}
- async status({refresh=false}={}){return {...await this.manager.status({refresh}),connected:!!this.ready,bufferState:this.bufferState,recording:[2,3].includes(this.bufferState),canSave:!!this.ready&&[2,3].includes(this.bufferState)};}
+ async status({refresh=false,force=false}={}){return {...await this.manager.status({refresh,force}),connected:!!this.ready,bufferState:this.bufferState,recording:[2,3].includes(this.bufferState),canSave:!!this.ready&&[2,3].includes(this.bufferState)};}
  ensureStarted(){if(this.disposed)return Promise.reject(Error('engine-stopped'));if(this.starting)return this.starting;this.starting=this.start().finally(()=>{this.starting=null;});return this.starting;}
  async start(){
   const initialEpoch=this.epoch||0,initialStatus=await this.manager.status();
