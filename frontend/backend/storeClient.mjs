@@ -52,6 +52,52 @@ export function createStoreClientOpener({spawnClient=spawn,...options}={}) {
   };
 }
 
+export function createStoreGameLauncher({spawnClient=spawn,...options}={}) {
+  const detect=createStoreClientDetector(options);
+  return async launch=>{
+    if(launch?.provider!=='steam'||!/^\d{1,12}$/.test(String(launch.appId||'')))throw Error('invalid-store-launch');
+    const file=await detect('steam');
+    if(!file)throw Error('steam-client-missing');
+    const child=spawnClient(file,['-applaunch',String(launch.appId)],{cwd:win32.dirname(file),detached:true,stdio:'ignore',windowsHide:false,shell:false});
+    await new Promise((resolve,reject)=>{child.once('error',reject);child.once('spawn',resolve);});
+    return child;
+  };
+}
+
+export function splitWindowsCommandLine(value='') {
+  const args=[];
+  let current='',quoted=false,index=0,started=false;
+  const push=()=>{if(started){args.push(current);current='';started=false;}};
+  while(index<value.length){
+    if(!quoted&&/\s/.test(value[index])){push();index++;continue;}
+    let slashes=0;
+    while(value[index+slashes]==='\\')slashes++;
+    if(slashes){
+      if(value[index+slashes]==='"'){
+        current+='\\'.repeat(Math.floor(slashes/2));started=true;
+        if(slashes%2)current+='"';else quoted=!quoted;
+        index+=slashes+1;continue;
+      }
+      current+='\\'.repeat(slashes);started=true;index+=slashes;continue;
+    }
+    if(value[index]==='"'){quoted=!quoted;started=true;index++;continue;}
+    current+=value[index];started=true;index++;
+  }
+  push();
+  return args;
+}
+
+export function createGameProcessLauncher({storeGameLauncher,spawnGame=spawn,...options}={}) {
+  const launchStore=storeGameLauncher||createStoreGameLauncher(options);
+  return async target=>{
+    if(target?.type==='store')return launchStore(target);
+    if(target?.type!=='executable'||typeof target.file!=='string'||win32.extname(target.file).toLowerCase()!=='.exe')throw Error('invalid-game-launch');
+    const child=spawnGame(target.file,splitWindowsCommandLine(target.arguments),{cwd:win32.dirname(target.file),detached:true,stdio:'ignore',windowsHide:false,shell:false});
+    await new Promise((resolve,reject)=>{child.once('error',reject);child.once('spawn',resolve);});
+    return child;
+  };
+}
+
 // Browser OpenID proves identity; it does not grant Web API access to game data.
 export class SteamConnection {
   constructor({local,web,browser,openClient}){Object.assign(this,{local,web,browser,openClient});this.generation=0;this.pending=false;}

@@ -49,7 +49,7 @@ async function discoverSteam(steamRoots) {
       const appId = vdfValue(text, "appid") || entry.name.match(/\d+/)?.[0];
       if (!title || !folder || !appId || /steamworks common redistributables/i.test(title) || /[\\/]/.test(folder)) continue;
       const path = join(apps, "common", folder);
-      if (await existsAsDirectory(path)) candidates.push({ path: await realpath(path), title, platform: "Steam", storeId: String(appId) });
+      if (await existsAsDirectory(path)) candidates.push({ path: await realpath(path), title, platform: "Steam", storeId: String(appId), launch: { provider: "steam", appId: String(appId) } });
     }
   }
   return candidates;
@@ -65,7 +65,11 @@ async function discoverEpic(manifestDirs) {
         const manifest = JSON.parse(await readText(join(folder, entry.name)));
         const path = manifest.InstallLocation;
         if (typeof path !== "string" || typeof manifest.DisplayName !== "string" || !path || !(isAbsolute(path) || win32.isAbsolute(path))) continue;
-        if (await existsAsDirectory(path)) candidates.push({ path: await realpath(path), title: manifest.DisplayName, platform: "Epic", storeId: String(manifest.AppName || manifest.CatalogItemId || "") });
+        if (await existsAsDirectory(path)) {
+          const executable = typeof manifest.LaunchExecutable === "string" && manifest.LaunchExecutable.length <= 1024 && !isAbsolute(manifest.LaunchExecutable) && !win32.isAbsolute(manifest.LaunchExecutable) && !manifest.LaunchExecutable.split(/[\\/]/).includes("..") ? manifest.LaunchExecutable : undefined;
+          const argumentsValue = typeof manifest.LaunchCommand === "string" && manifest.LaunchCommand.length <= 4096 && !/[\r\n]/.test(manifest.LaunchCommand) ? manifest.LaunchCommand : "";
+          candidates.push({ path: await realpath(path), title: manifest.DisplayName, platform: "Epic", storeId: String(manifest.AppName || manifest.CatalogItemId || ""), launch: executable ? { provider: "epic", executable, arguments: argumentsValue } : undefined });
+        }
       } catch { /* Ignore incomplete or invalid launcher manifests. */ }
     }
   }

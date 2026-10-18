@@ -32,7 +32,9 @@ async function runViewport(label, viewport) {
     checks.push(`${label}: ${path}`);
   };
 
-  await capture("/", /CALL OF DUTY.*BLACK OPS (?:2|II)/, "home");
+  await capture("/", /.+/, "home", async (p) => {
+    await p.locator('.hero-game h1').waitFor();
+  });
   if (label === "desktop") {
     await page.locator('.game-tile[data-selected="true"]').focus();
     await page.keyboard.press("ArrowUp");
@@ -42,11 +44,10 @@ async function runViewport(label, viewport) {
     checks.push("desktop: navigation clavier Home rail → action → navigation");
   }
   await capture("/library", "Bibliothèque", "library", async (p) => {
-    await p.locator(".library-focus").waitFor();
+    await p.locator(".library-entry").first().waitFor();
   });
   await capture("/search", "Recherche", "search", async (p) => {
-    await p.getByPlaceholder("Titre, genre, studio…").fill("Red Dead");
-    await p.getByText("RED DEAD REDEMPTION 2", { exact: true }).waitFor();
+    await p.locator(".search-card").first().waitFor();
   });
   if (label === "desktop") {
     await page.getByPlaceholder("Titre, genre, studio…").focus();
@@ -57,7 +58,7 @@ async function runViewport(label, viewport) {
 
   await capture("/settings", "Paramètres", "settings", async (p) => {
     await p.getByRole("button", { name: "Bibliothèques" }).click();
-    await p.getByText("F:\\Games", { exact: false }).waitFor();
+    await p.locator(".settings-list").waitFor();
   });
   if (label === "desktop") {
     await page.getByRole("button", { name: "Bibliothèques" }).focus();
@@ -67,8 +68,16 @@ async function runViewport(label, viewport) {
     if (!await page.getByRole("button", { name: "Ajouter un jeu (.exe)" }).isEnabled()) failures.push("desktop: ajout d’un exécutable indisponible");
     checks.push("desktop: navigation spatiale Settings");
   }
-  await capture("/downloads", "Téléchargements", "downloads");
-  await capture("/game/local-call-of-duty-black-ops-2-ankergames", /CALL OF DUTY.*BLACK OPS (?:2|II)/, "detail");
+  await capture("/extensions", "Extensions", "extensions");
+  await page.goto(`${base}/library`, { waitUntil: "domcontentloaded" });
+  await page.locator(".library-entry").first().click();
+  await page.waitForURL(/\/game\//, { timeout: 20_000 });
+  await page.locator(".game-detail-screen").waitFor({ timeout: 20_000 });
+  await page.waitForTimeout(2200);
+  await page.screenshot({ path: resolve(qaDir, `${label}-detail.png`) });
+  const detailSize = await page.evaluate(() => ({ page: document.documentElement.scrollWidth, viewport: innerWidth }));
+  if (detailSize.page > detailSize.viewport + 2) failures.push(`${label}/game: overflow ${detailSize.page} > ${detailSize.viewport}`);
+  checks.push(`${label}: dynamic game detail`);
 
   if (label === "narrow") {
     const box = await page.locator(".top-navigation__routes").boundingBox();

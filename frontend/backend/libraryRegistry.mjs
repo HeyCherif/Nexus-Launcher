@@ -85,8 +85,16 @@ export class LibraryRegistry {
     const excluded = new Set(this.data.excludedPaths.map(pathKey));
     for (const candidate of candidates) {
       const path = await realpath(candidate.path).catch(() => null);
-      if (!path || excluded.has(pathKey(path)) || this.data.roots.some((root) => pathKey(root.path) === pathKey(path))) continue;
-      this.data.roots.push({ id: idFor("root", path), path, enabled: true, kind: "game", auto: true, platform: candidate.platform, title: candidate.title, storeId: candidate.storeId });
+      if (!path || excluded.has(pathKey(path))) continue;
+      const existing = this.data.roots.find((root) => pathKey(root.path) === pathKey(path));
+      if (existing) {
+        if (existing.auto) {
+          const next = { platform: candidate.platform, title: candidate.title, storeId: candidate.storeId, launch: candidate.launch };
+          if (JSON.stringify({ platform: existing.platform, title: existing.title, storeId: existing.storeId, launch: existing.launch }) !== JSON.stringify(next)) { Object.assign(existing, next); changed = true; }
+        }
+        continue;
+      }
+      this.data.roots.push({ id: idFor("root", path), path, enabled: true, kind: "game", auto: true, platform: candidate.platform, title: candidate.title, storeId: candidate.storeId, launch: candidate.launch });
       changed = true;
     }
     if (changed) await this.persist();
@@ -194,7 +202,7 @@ export class LibraryRegistry {
           }
           const executablePath = this.data.overrides[id]?.executablePath || game.executablePath;
           const executableInfo = executablePath ? await stat(executablePath).catch(() => null) : null;
-          next.set(id, { ...enriched, title: correctedTitle || source.title || game.title, platform: source.platform || "Local", storeId: source.storeId, id, legacyId: game.id, sourceId: source.id, executablePath, executableName: executablePath ? basename(executablePath) : undefined, executableSignature: executableInfo ? `${executableInfo.size}:${executableInfo.mtimeMs}` : undefined });
+          next.set(id, { ...enriched, title: correctedTitle || source.title || game.title, platform: source.platform || "Local", storeId: source.storeId, launch: source.launch, id, legacyId: game.id, sourceId: source.id, executablePath, executableName: executablePath ? basename(executablePath) : undefined, executableSignature: executableInfo ? `${executableInfo.size}:${executableInfo.mtimeMs}` : undefined });
         }
         delete this.errors[source.id];
       }
@@ -232,6 +240,26 @@ export class LibraryRegistry {
       if (!root || !isWithin(file, await realpath(root.path))) throw new Error("Exécutable non autorisé");
     }
     return file;
+  }
+
+  async authorizedLaunch(gameId) {
+    const game = this.games.get(gameId);
+    if (!game) throw new Error("Jeu inconnu");
+    const root = this.data.roots.find((item) => item.id === game.sourceId && item.enabled);
+    if (root?.launch?.provider === "steam" && /^\d{1,12}$/.test(String(root.launch.appId || "")) && String(root.launch.appId) === String(root.storeId)) {
+      return { type: "store", provider: "steam", appId: String(root.launch.appId), folderPath: await realpath(root.path) };
+    }
+    if (root?.launch?.provider === "epic" && typeof root.launch.executable === "string") {
+      const folderPath = await realpath(root.path);
+      const candidate = resolve(folderPath, root.launch.executable);
+      if (!isWithin(candidate, folderPath)) throw new Error("Exécutable Epic hors du dossier inscrit");
+      const file = await realpath(candidate);
+      const info = await stat(file);
+      if (!info.isFile() || extname(file).toLowerCase() !== ".exe") throw new Error("Exécutable Epic introuvable");
+      return { type: "executable", file, arguments: root.launch.arguments || "", folderPath, provider: "epic" };
+    }
+    const file = await this.authorizedExecutable(gameId);
+    return { type: "executable", file, arguments: "", folderPath: game.folderPath, provider: "local" };
   }
 
   async authorizedArtwork(file) {

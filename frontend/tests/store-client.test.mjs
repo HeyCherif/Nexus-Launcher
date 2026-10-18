@@ -6,6 +6,42 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { SteamAchievements } from '../backend/steamAchievements.mjs';
 import { createStoreClientOpener, SteamConnection } from '../backend/storeClient.mjs';
+import * as storeClient from '../backend/storeClient.mjs';
+
+test('Steam game launch uses the verified client and official app id',async()=>{
+  assert.equal(typeof storeClient.createStoreGameLauncher,'function');
+  const calls=[];
+  const launch=storeClient.createStoreGameLauncher({
+    platform:'win32',env:{},registryPaths:async()=>['D:\\Steam\\steam.exe'],fileStat:async()=>({isFile:()=>true}),
+    spawnClient:(path,args,options)=>{calls.push({path,args,options});const child=new EventEmitter();child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;},
+  });
+  const child=await launch({provider:'steam',appId:'1952920'});
+  assert.equal(child.pid,undefined);
+  assert.equal(calls[0].path,'D:\\Steam\\steam.exe');
+  assert.deepEqual(calls[0].args,['-applaunch','1952920']);
+  assert.equal(calls[0].options.shell,false);
+  await assert.rejects(launch({provider:'steam',appId:'../../calc'}),/invalid-store-launch/);
+});
+
+test('Epic manifest arguments are split without a command shell',()=>{
+  assert.equal(typeof storeClient.splitWindowsCommandLine,'function');
+  assert.deepEqual(storeClient.splitWindowsCommandLine('-AUTH_LOGIN=unused -log="C:\\Game Logs\\run.log" ""'),['-AUTH_LOGIN=unused','-log=C:\\Game Logs\\run.log','']);
+  assert.deepEqual(storeClient.splitWindowsCommandLine('  -windowed   -locale=fr  '),['-windowed','-locale=fr']);
+});
+
+test('authorized executable launch applies Epic arguments with the game working directory',async()=>{
+  assert.equal(typeof storeClient.createGameProcessLauncher,'function');
+  const calls=[];
+  const launch=storeClient.createGameProcessLauncher({
+    storeGameLauncher:async target=>({target,pid:7}),
+    spawnGame:(path,args,options)=>{calls.push({path,args,options});const child=new EventEmitter();child.pid=9;child.unref=()=>{};queueMicrotask(()=>child.emit('spawn'));return child;},
+  });
+  const child=await launch({type:'executable',file:'D:\\Epic\\Game\\Binaries\\Game.exe',arguments:'-windowed -log="D:\\Game Logs\\run.log"',folderPath:'D:\\Epic\\Game',provider:'epic'});
+  assert.equal(child.pid,9);
+  assert.deepEqual(calls[0].args,['-windowed','-log=D:\\Game Logs\\run.log']);
+  assert.equal(calls[0].options.cwd,'D:\\Epic\\Game\\Binaries');
+  assert.equal(calls[0].options.shell,false);
+});
 
 test('detects each installed launcher in a custom registry location and opens only its executable',async()=>{
   for(const [provider,name] of [['steam','steam.exe'],['epic','EpicGamesLauncher.exe'],['gog','GalaxyClient.exe']]){

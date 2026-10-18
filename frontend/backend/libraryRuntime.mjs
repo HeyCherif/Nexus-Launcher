@@ -16,7 +16,7 @@ import { getCatalogMedia } from "./catalogMedia.mjs";
 
 let runtimeConfig = { libraryRoot: process.env.NEXUS_GAMES_ROOT || "F:\\Games", steamGridDbApiKey: process.env.STEAMGRIDDB_API_KEY || "" };
 const ignoredFolder = /^(redist|_commonredist|support|installer|installers|rdr2 updated setup files)$/i;
-const ignoredExecutable = /(unins|uninstall|setup|redist|trainer|crash|report|dxweb|vcredist|dotnet|physx|quick ?sfv|benchmark)/i;
+const ignoredExecutable = /(unins|uninstall|setup|redist|trainer|crash|report|crs[-_ ]?handler|bypass|dxweb|vcredist|dotnet|physx|quick ?sfv|benchmark)/i;
 const artworkNames = /^(cover|folder|hero|background|header|library_hero|capsule)[-_ ]?/i;
 const steamAppIds = new Map([
   ["call-of-duty-black-ops-2", 202970],
@@ -85,21 +85,27 @@ async function inspectGameFolder(folderPath, folderName) {
   const queue = [{ path: folderPath, depth: 0 }];
   const executables = [];
   const artworks = [];
-  let visited = 0;
-  while (queue.length > 0 && visited < 360) {
+  let visitedDirectories = 0;
+  let inspectedFiles = 0;
+  while (queue.length > 0 && visitedDirectories < 160) {
     const current = queue.shift();
     if (!current) break;
+    visitedDirectories += 1;
     let entries = [];
     try { entries = await readdir(current.path, { withFileTypes: true }); } catch { continue; }
+    const childDirectories = [];
     for (const entry of entries) {
-      visited += 1;
       const fullPath = join(current.path, entry.name);
-      if (entry.isDirectory() && current.depth < 3 && !ignoredFolder.test(entry.name)) queue.push({ path: fullPath, depth: current.depth + 1 });
+      if (entry.isDirectory() && current.depth < 3 && !ignoredFolder.test(entry.name)) { childDirectories.push({ path: fullPath, depth: current.depth + 1, name: entry.name }); continue; }
       if (!entry.isFile()) continue;
+      inspectedFiles += 1;
+      if (inspectedFiles > 12_000) continue;
       const extension = extname(entry.name).toLowerCase();
       if (extension === ".exe" && !ignoredExecutable.test(entry.name)) executables.push(fullPath);
       if ([".jpg", ".jpeg", ".png", ".webp"].includes(extension)) artworks.push(fullPath);
     }
+    childDirectories.sort((a, b) => Number(/^(binaries|bin|win64|x64|game|client)$/i.test(b.name)) - Number(/^(binaries|bin|win64|x64|game|client)$/i.test(a.name)));
+    queue.push(...childDirectories.map(({ path, depth }) => ({ path, depth })));
   }
 
   const folderTokens = slug(folderName).split("-").filter((token) => token.length > 2);
@@ -213,7 +219,7 @@ async function getSteamGridDbMetadata(appId, title) {
 async function readLibraryCache(root, signature, direct = false, titleHint = "", storeId = "", allowStale = false) {
   try {
     const cached = JSON.parse(await readFile(libraryCacheFile(root, direct, titleHint, storeId), "utf8"));
-    if (cached.root !== root || !Array.isArray(cached.games) || (!allowStale && cached.version !== 3)) return undefined;
+    if (cached.root !== root || !Array.isArray(cached.games) || (!allowStale && cached.version !== 4)) return undefined;
     const fresh = Date.now() - new Date(cached.cachedAt).valueOf() < 5 * 60 * 1000;
     if (!allowStale && !fresh && (!signature || cached.signature !== signature)) return undefined;
     return cached.games;
@@ -225,7 +231,7 @@ async function readLibraryCache(root, signature, direct = false, titleHint = "",
 async function writeLibraryCache(root, signature, games, direct = false, titleHint = "", storeId = "") {
   try {
     await mkdir(cacheDirectory, { recursive: true });
-    await writeFile(libraryCacheFile(root, direct, titleHint, storeId), JSON.stringify({ version: 3, root, signature, cachedAt: new Date().toISOString(), games }), "utf8");
+    await writeFile(libraryCacheFile(root, direct, titleHint, storeId), JSON.stringify({ version: 4, root, signature, cachedAt: new Date().toISOString(), games }), "utf8");
   } catch {
     // The library remains usable when the optional local cache cannot be written.
   }

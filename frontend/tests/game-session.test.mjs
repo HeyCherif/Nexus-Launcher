@@ -29,3 +29,20 @@ test('temporary process enumeration failure does not end a known running game', 
   await new Promise(resolve => setTimeout(resolve, 25)); assert.equal(ended, false);
   const exit = new Promise(resolve => session.once('exit', resolve)); fail = false; alive = false; await exit;
 });
+
+test('store session waits for a game process inside the install folder after Steam exits', async () => {
+  const child = new EventEmitter(); child.pid = 10;
+  let rows = [{ pid: 10, parent: 1, executablePath: 'D:\\Steam\\steam.exe' }];
+  const session = trackGameSession(child, { gameRoot: 'D:\\Games\\StrikersClub', interval: 10, attachTimeout: 100, listProcesses: async () => rows });
+  let ended = false; session.once('exit', () => { ended = true; });
+  child.emit('exit', 0); rows = [];
+  await new Promise(resolve => setTimeout(resolve, 25));
+  assert.equal(ended, false);
+  rows = [{ pid: 44, parent: 1, executablePath: 'D:\\Games\\StrikersClub\\UFG\\Binaries\\Win64\\UFG-Win64-Shipping.exe' }];
+  await new Promise(resolve => setTimeout(resolve, 25));
+  assert.equal(ended, false);
+  const exit = new Promise(resolve => session.once('exit', resolve));
+  rows = [];
+  await exit;
+  assert.equal(ended, true);
+});

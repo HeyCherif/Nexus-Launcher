@@ -1,6 +1,6 @@
 import { app, BrowserWindow, dialog, ipcMain, net, protocol, safeStorage, shell, screen, desktopCapturer, globalShortcut } from "electron";
 import { readFile, stat } from "node:fs/promises";
-import { extname, isAbsolute, join, normalize, relative, resolve, dirname } from "node:path";
+import { extname, isAbsolute, join, normalize, relative, resolve } from "node:path";
 import { spawn } from "node:child_process";
 import { randomUUID } from 'node:crypto';
 import { EventBus, ModuleHost } from './core/moduleHost.mjs';
@@ -30,7 +30,7 @@ function getSanCompanion(){return sanCompanion ||= new SanCompanion(app.getPath(
 import { LocalSteamProgress } from "./steamLocal.mjs";
 import { SteamAchievements as BrowserSteamAccount } from './steamAchievements.mjs';
 import { SteamOpenId, createSteamBrowserLauncher } from './steamOpenId.mjs';
-import { createStoreClientOpener, SteamConnection } from './storeClient.mjs';
+import { createGameProcessLauncher, createStoreClientOpener, SteamConnection } from './storeClient.mjs';
 import { inspectLocalSetup } from './setupDiagnostics.mjs';
 import { SanInstaller } from "./sanInstaller.mjs";
 
@@ -132,6 +132,7 @@ let registryPromise;
 let secretStore;
 let steamAchievements;
 const openStoreClient = createStoreClientOpener();
+const launchGameProcess = createGameProcessLauncher();
 let steamBrowser;
 let sanInstaller;
 function openSteam(){return shell.openExternal('steam://open/main');}
@@ -422,16 +423,18 @@ function registerIpc() {
     gameLaunches.add(String(gameId));
     try {
     const registry = await getRegistry();
-    const file = await registry.authorizedExecutable(String(gameId));
+    const target = await registry.authorizedLaunch(String(gameId));
     const game=registry.games.get(String(gameId));
     const companion=await achievementsModule.prepareLaunch(game);
     // Prepare the optional recorder before the game takes focus. Failure never blocks launch.
     await getReplay().ensureStarted().catch(()=>{});
     if(savesModule.isBusy(String(gameId)))throw Error('Sauvegarde en cours / Save operation in progress');
-    const child = spawn(file, [], { cwd: dirname(file), detached: true, stdio: "ignore", windowsHide: false });
-    await new Promise((resolve, reject) => { child.once("spawn", resolve); child.once("error", reject); });
+    const child = await launchGameProcess(target).catch(error=>{
+      if(error?.message==='steam-client-missing')throw Error(locale==='en'?'Steam is required to launch this game. Open or reinstall Steam, then try again.':'Steam est nécessaire pour lancer ce jeu. Ouvrez ou réinstallez Steam, puis réessayez.');
+      throw error;
+    });
     const window = BrowserWindow.fromWebContents(event.sender);
-    const session = trackGameSession(child);
+    const session = trackGameSession(child,{gameRoot:target.folderPath});
     const sessionId=randomUUID(),startedAt=new Date().toISOString(),startedTick=performance.now();
     moduleSessions.set(sessionId,session);
     gameSessions.set(String(gameId), session);

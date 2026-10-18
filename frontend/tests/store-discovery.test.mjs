@@ -18,7 +18,7 @@ test("Steam libraries and Epic manifests discover installed games outside the de
   await writeFile(join(steam, "steamapps", "libraryfolders.vdf"), `"libraryfolders" { "1" { "path" "${secondLibrary.replaceAll("\\", "\\\\")}" } }`);
   await writeFile(join(steam, "steamapps", "appmanifest_101.acf"), '"AppState" { "appid" "101" "name" "First Game" "installdir" "First Game" }');
   await writeFile(join(secondLibrary, "steamapps", "appmanifest_202.acf"), '"AppState" { "appid" "202" "name" "Second Game" "installdir" "Second Game" }');
-  await writeFile(join(epicManifests, "installed.item"), JSON.stringify({ DisplayName: "Epic Example", InstallLocation: epicGame, AppName: "EpicExample" }));
+  await writeFile(join(epicManifests, "installed.item"), JSON.stringify({ DisplayName: "Epic Example", InstallLocation: epicGame, AppName: "EpicExample", LaunchExecutable: "Binaries\\EpicExample.exe", LaunchCommand: "-AUTH_LOGIN=unused -windowed" }));
   await writeFile(join(epicManifests, "missing.item"), JSON.stringify({ DisplayName: "Missing", InstallLocation: join(profile, "not-connected"), AppName: "Missing" }));
   await writeFile(join(epicManifests, "broken.item"), "{");
 
@@ -28,6 +28,8 @@ test("Steam libraries and Epic manifests discover installed games outside the de
     ["First Game", "Steam", "101"],
     ["Second Game", "Steam", "202"],
   ]);
+  assert.deepEqual(discovery.games.find((game) => game.platform === "Steam")?.launch, { provider: "steam", appId: "101" });
+  assert.deepEqual(discovery.games.find((game) => game.platform === "Epic")?.launch, { provider: "epic", executable: "Binaries\\EpicExample.exe", arguments: "-AUTH_LOGIN=unused -windowed" });
 
   const registry = new LibraryRegistry(profile, async (root) => ({ games: [{ folderPath: root, title: "Folder Name" }] }));
   await registry.load();

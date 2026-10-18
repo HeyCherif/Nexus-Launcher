@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
 import { mkdtemp, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { dirname, join } from "node:path";
 import { LibraryRegistry, titleFromExecutable } from "../backend/libraryRegistry.mjs";
 
 test("manual executable proposes a title, refreshes metadata after correction, and persists Nexus playtime", async () => {
@@ -98,6 +98,42 @@ test("a direct game folder is scanned as one source", async () => {
   await registry.addFolder(folder, "game");
   assert.equal(calls[0].direct, true);
   assert.equal(registry.snapshot().games.length, 1);
+});
+
+test("store launch metadata survives discovery and scanning", async () => {
+  const profile = await mkdtemp(join(tmpdir(), "nexus-registry-"));
+  const folder = join(profile, "Steam Game");
+  await mkdir(folder);
+  const registry = new LibraryRegistry(profile, async (root) => ({ games: [{ id: "local-game", title: "Steam Game", folderPath: root }] }));
+  await registry.load();
+  await registry.syncAutoSources([{ path: folder, title: "Steam Game", platform: "Steam", storeId: "12345", launch: { provider: "steam", appId: "12345" } }]);
+  const game = (await registry.scan()).games[0];
+  assert.deepEqual(game.launch, { provider: "steam", appId: "12345" });
+  assert.deepEqual(await registry.authorizedLaunch(game.id), { type: "store", provider: "steam", appId: "12345", folderPath: await realpath(folder) });
+});
+
+test("Epic manifest launch resolves only its registered executable and arguments", async () => {
+  const profile = await mkdtemp(join(tmpdir(), "nexus-registry-"));
+  const folder = join(profile, "Epic Game");
+  const executable = join(folder, "Binaries", "EpicGame.exe");
+  await mkdir(dirname(executable), { recursive: true });
+  await writeFile(executable, "game");
+  const registry = new LibraryRegistry(profile, async (root) => ({ games: [{ id: "local-game", title: "Epic Game", folderPath: root }] }));
+  await registry.load();
+  await registry.syncAutoSources([{ path: folder, title: "Epic Game", platform: "Epic", storeId: "EpicGame", launch: { provider: "epic", executable: "Binaries\\EpicGame.exe", arguments: "-windowed -locale=fr" } }]);
+  const game = (await registry.scan()).games[0];
+  assert.deepEqual(await registry.authorizedLaunch(game.id), { type: "executable", file: await realpath(executable), arguments: "-windowed -locale=fr", folderPath: await realpath(folder), provider: "epic" });
+});
+
+test("store rediscovery upgrades an existing automatic source with launch metadata", async () => {
+  const profile = await mkdtemp(join(tmpdir(), "nexus-registry-"));
+  const folder = join(profile, "Existing Steam Game");
+  await mkdir(folder);
+  const registry = new LibraryRegistry(profile, async (root) => ({ games: [{ id: "local-game", title: "Existing Steam Game", folderPath: root }] }));
+  await registry.load();
+  await registry.syncAutoSources([{ path: folder, title: "Existing Steam Game", platform: "Steam", storeId: "987" }]);
+  await registry.syncAutoSources([{ path: folder, title: "Existing Steam Game", platform: "Steam", storeId: "987", launch: { provider: "steam", appId: "987" } }]);
+  assert.deepEqual(registry.snapshot().roots[0].launch, { provider: "steam", appId: "987" });
 });
 
 test("launch only resolves scanned game IDs and explicitly registered executables", async () => {
