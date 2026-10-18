@@ -63,3 +63,23 @@ it('asks for the game folder first and cancellation does not complete the choice
   expect(view.getByRole('button', { name: 'Continuer' }).hasAttribute('disabled')).toBe(true);
   expect(complete).not.toHaveBeenCalled();
 });
+
+it('each new setup step resets panel scrolling and focuses its heading', async () => {
+  const view = render(<Onboarding open onComplete={vi.fn()} onAddFolder={vi.fn()} />);
+  const layout = view.container.querySelector('.onboarding__layout') as HTMLElement;
+  const journey = view.container.querySelector('.onboarding__journey') as HTMLElement;
+  layout.scrollTop = 228;
+  journey.scrollTop = 90;
+
+  fireEvent.click(view.getByRole('button', { name: 'Ajouter mes jeux plus tard' }));
+  const heading = await view.findByRole('heading', { name: 'À votre image.' });
+  await waitFor(() => expect(document.activeElement).toBe(heading));
+  expect(layout.scrollTop).toBe(0);
+  expect(journey.scrollTop).toBe(0);
+
+  layout.scrollTop = 150;
+  fireEvent.click(view.getByRole('button', { name: 'Continuer' }));
+  const summary = await view.findByRole('heading', { name: 'Vous êtes chez vous.' });
+  await waitFor(() => expect(document.activeElement).toBe(summary));
+  expect(layout.scrollTop).toBe(0);
+});

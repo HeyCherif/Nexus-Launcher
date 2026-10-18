@@ -44,7 +44,8 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
     if (!node || !open) return;
     requestAnimationFrame(() => {
       if (!node.isConnected) return;
-      (node.querySelector<HTMLButtonElement>('button') || frame.current?.querySelector<HTMLButtonElement>('.onboarding__footer button'))?.focus();
+      for (const panel of frame.current?.querySelectorAll<HTMLElement>('.onboarding__layout, .onboarding__journey') || []) panel.scrollTop = 0;
+      node.querySelector<HTMLHeadingElement>('h1')?.focus({ preventScroll: true });
     });
   }, [open]);
   const addFolder = async () => {
@@ -117,7 +118,7 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
                 {step === 0 ? (
                   <>
                     <span className="onboarding__eyebrow">{copy.steps[0]}</span>
-                    <h1>{copy.hero}</h1>
+                    <h1 tabIndex={-1}>{copy.hero}</h1>
                     <p>{copy.description}</p>
                     {detectedLibrary && !importMessage ? <div className="onboarding__detected" role="status"><Check size={20}/><span><strong>{games.length} {copy.games}</strong><small>{copy.useDetected}</small></span></div> : null}
                     <div className="onboarding__folder-actions">
@@ -134,7 +135,7 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
                   <>
                     <div className="onboarding__icon"><GlobeHemisphereWest size={34} weight="light" /></div>
                     <span className="onboarding__eyebrow">{t("onboarding.yours")}</span>
-                    <h1>{copy.personalize}</h1>
+                    <h1 tabIndex={-1}>{copy.personalize}</h1>
                     <p>{copy.personalizeDesc}</p>
                     <div className="onboarding__choices">
                       <div className="choice-group" role="group" aria-label={t("onboarding.language")}>
@@ -152,7 +153,7 @@ export function Onboarding({ open, onComplete, onAddFolder }: OnboardingProps) {
                   <>
                     <div className="onboarding__icon"><GameController size={38} weight="light" /></div>
                     <span className="onboarding__eyebrow">{t("onboarding.control")}</span>
-                    <h1>{copy.ready}</h1>
+                    <h1 tabIndex={-1}>{copy.ready}</h1>
                     <p>{copy.readyDesc}</p>
                     <div className="onboarding__summary"><div><Check size={18}/><span>{games.length ? `${games.length} ${copy.games}` : copy.emptyLibrary}</span></div><div><GlobeHemisphereWest size={18}/><span>{locale==='fr'?'Français':'English'}</span></div><div><Sparkle size={18}/><span>{t(`system.${theme}`)}</span></div></div>
                     {notifications.desktop?.activateSteamNotifications&&<button className="onboarding-notification-choice" type="button" role="checkbox" aria-checked={notifyChoice} onClick={()=>setNotifyChoice(value=>!value)}><Trophy size={27} weight="duotone"/><span><strong>{notifyCopy.onboarding}</strong><small>{notifications.busy?notifyCopy.downloading+' '+(notifications.status?.progress||0)+'%':notifyCopy.onboardingHint}</small></span><i>{notifyChoice&&<Check size={17} weight="bold"/>}</i></button>}
