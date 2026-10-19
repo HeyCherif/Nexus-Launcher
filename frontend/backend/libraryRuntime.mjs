@@ -16,7 +16,7 @@ import { getCatalogMedia } from "./catalogMedia.mjs";
 
 let runtimeConfig = { libraryRoot: process.env.NEXUS_GAMES_ROOT || "F:\\Games", steamGridDbApiKey: process.env.STEAMGRIDDB_API_KEY || "" };
 const ignoredFolder = /^(redist|_commonredist|support|installer|installers|rdr2 updated setup files)$/i;
-const ignoredExecutable = /(unins|uninstall|setup|redist|trainer|crash|report|crs[-_ ]?handler|bypass|dxweb|vcredist|dotnet|physx|quick ?sfv|benchmark)/i;
+const ignoredExecutable = /(unins|uninstall|setup|redist|trainer|crash|report|crs[-_ ]?(?:handler|uploader)|bypass|dxweb|vcredist|dotnet|physx|quick ?sfv|benchmark)/i;
 const artworkNames = /^(cover|folder|hero|background|header|library_hero|capsule)[-_ ]?/i;
 const steamAppIds = new Map([
   ["call-of-duty-black-ops-2", 202970],

@@ -1,10 +1,35 @@
 import { createHash } from "node:crypto";
-import { copyFile, mkdir, readFile, realpath, rename, stat, writeFile } from "node:fs/promises";
+import { copyFile, mkdir, readFile, readdir, realpath, rename, stat, writeFile } from "node:fs/promises";
 import { basename, dirname, extname, isAbsolute, join, relative, resolve, sep } from "node:path";
 
 const emptyData = () => ({ version: 1, roots: [], manualGames: [], excludedPaths: [], overrides: {}, playtime: {} });
 const pathKey = (value) => resolve(value).toLocaleLowerCase();
 const idFor = (kind, value) => `${kind}-${createHash("sha256").update(pathKey(value)).digest("hex").slice(0, 16)}`;
+const helperExecutable = /(unins|uninstall|setup|redist|crash|report|vcredist|dxweb|unitycrashhandler)/i;
+
+async function childContainsGameExecutable(root) {
+  const queue = [{ path: root, depth: 0 }];
+  let inspected = 0;
+  while (queue.length && inspected < 400) {
+    const current = queue.shift();
+    const entries = await readdir(current.path, { withFileTypes: true }).catch(() => []);
+    for (const entry of entries) {
+      inspected += 1;
+      if (entry.isFile() && extname(entry.name).toLowerCase() === ".exe" && !helperExecutable.test(entry.name)) return true;
+      if (entry.isDirectory() && current.depth < 2) queue.push({ path: join(current.path, entry.name), depth: current.depth + 1 });
+    }
+  }
+  return false;
+}
+
+async function normalizedFolderKind(path, requestedKind) {
+  if (requestedKind !== "game") return requestedKind;
+  const entries = await readdir(path, { withFileTypes: true }).catch(() => []);
+  const children = entries.filter((entry) => entry.isDirectory()).slice(0, 16);
+  if (children.length < 2) return requestedKind;
+  const playableChildren = await Promise.all(children.map((entry) => childContainsGameExecutable(join(path, entry.name))));
+  return playableChildren.filter(Boolean).length >= 2 ? "collection" : requestedKind;
+}
 export function titleFromExecutable(file) {
   const stem = basename(file, extname(file)).replace(/[_-]+/g, " ").trim();
   let parent = dirname(file);
@@ -63,8 +88,14 @@ export class LibraryRegistry {
   async addFolder(selectedPath, kind = "collection", scan = true) {
     const path = await realpath(selectedPath);
     if (!(await stat(path)).isDirectory()) throw new Error("Dossier invalide");
-    if (!this.data.roots.some((item) => pathKey(item.path) === pathKey(path))) {
-      this.data.roots.push({ id: idFor("root", path), path, enabled: true, kind });
+    const normalizedKind = await normalizedFolderKind(path, kind);
+    const existing = this.data.roots.find((item) => pathKey(item.path) === pathKey(path));
+    if (!existing) {
+      this.data.roots.push({ id: idFor("root", path), path, enabled: true, kind: normalizedKind, layoutChecked: 1 });
+      await this.persist();
+    } else if (!existing.auto && (existing.kind !== normalizedKind || existing.layoutChecked !== 1)) {
+      existing.kind = normalizedKind;
+      existing.layoutChecked = 1;
       await this.persist();
     }
     return scan ? this.scan() : this.snapshot();
@@ -83,9 +114,12 @@ export class LibraryRegistry {
   async syncAutoSources(candidates) {
     let changed = false;
     const excluded = new Set(this.data.excludedPaths.map(pathKey));
+    const discovered = new Set();
+    const discoveredStoreIds = new Set(candidates.map((candidate) => `${candidate.platform || ""}:${candidate.storeId || ""}`));
     for (const candidate of candidates) {
       const path = await realpath(candidate.path).catch(() => null);
       if (!path || excluded.has(pathKey(path))) continue;
+      discovered.add(pathKey(path));
       const existing = this.data.roots.find((root) => pathKey(root.path) === pathKey(path));
       if (existing) {
         if (existing.auto) {
@@ -97,6 +131,14 @@ export class LibraryRegistry {
       this.data.roots.push({ id: idFor("root", path), path, enabled: true, kind: "game", auto: true, platform: candidate.platform, title: candidate.title, storeId: candidate.storeId, launch: candidate.launch });
       changed = true;
     }
+    const retainedRoots = [];
+    for (const root of this.data.roots) {
+      if (!root.auto || discovered.has(pathKey(root.path))) { retainedRoots.push(root); continue; }
+      const exists = await stat(root.path).then((info) => info.isDirectory()).catch(() => false);
+      const moved = discoveredStoreIds.has(`${root.platform || ""}:${root.storeId || ""}`);
+      if (exists && !moved) retainedRoots.push(root);
+    }
+    if (retainedRoots.length !== this.data.roots.length) { this.data.roots = retainedRoots; changed = true; }
     if (changed) await this.persist();
     return changed;
   }
@@ -182,6 +224,14 @@ export class LibraryRegistry {
   }
 
   async scan(sourceId, force = false) {
+    let repairedLayout = false;
+    for (const root of this.data.roots) {
+      if (root.auto || root.kind !== "game" || root.layoutChecked === 1) continue;
+      root.kind = await normalizedFolderKind(root.path, root.kind);
+      root.layoutChecked = 1;
+      repairedLayout = true;
+    }
+    if (repairedLayout) await this.persist();
     const next = sourceId ? new Map(this.games) : new Map();
     const sources = this.data.roots.filter((item) => item.enabled && (!sourceId || item.id === sourceId));
     for (let start = 0; start < sources.length; start += 4) {
@@ -209,6 +259,19 @@ export class LibraryRegistry {
     }
     for (const manual of this.data.manualGames) {
       const executableInfo = await stat(manual.executablePath).catch(() => null);
+      const scannedMatch = [...next.entries()]
+        .filter(([id, game]) => id !== manual.id && game.folderPath && isWithin(manual.executablePath, game.folderPath))
+        .sort(([, left], [, right]) => right.folderPath.length - left.folderPath.length)[0];
+      if (scannedMatch && executableInfo?.isFile()) {
+        const [id, game] = scannedMatch;
+        next.set(id, {
+          ...game,
+          executablePath: manual.executablePath,
+          executableName: basename(manual.executablePath),
+          executableSignature: `${executableInfo.size}:${executableInfo.mtimeMs}`,
+        });
+        continue;
+      }
       const title = this.data.overrides[manual.id]?.title || manual.title;
       let metadata = {};
       try {

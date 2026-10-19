@@ -56,6 +56,8 @@
 .media-backdrop__fallback img { width: min(24vw, 21rem); aspect-ratio: 1; object-fit: contain; opacity: .13; transform: translateX(17vw) rotate(-8deg); }
 .nexus-shell[data-route="home"] .game-tile[data-placeholder="true"] { background: radial-gradient(circle at 75% 25%, color-mix(in srgb, var(--tile-accent) 17%, transparent), transparent 70%), #0b1520; }
 .nexus-shell[data-route="home"] .game-tile[data-placeholder="true"] > img { width: 38%; height: 67%; margin: 7% auto 0; object-fit: contain; opacity: .82; }
+.library-entry[data-placeholder="true"] { background: radial-gradient(circle at 72% 24%, color-mix(in srgb, var(--color-focus) 16%, transparent), transparent 62%), linear-gradient(145deg, rgba(15,32,47,.96), rgba(5,12,19,.98)); }
+.library-entry[data-placeholder="true"] > img { width: 28%; height: 54%; margin: 7% auto 0; object-fit: contain; opacity: .7; filter: drop-shadow(0 10px 22px rgba(0,0,0,.45)); }
 .media-backdrop__grade {
   background:
     linear-gradient(90deg, rgba(3,7,11,.92) 0%, rgba(3,7,11,.72) 24%, rgba(3,7,11,.25) 52%, rgba(3,7,11,.12) 74%, rgba(3,7,11,.42) 100%),

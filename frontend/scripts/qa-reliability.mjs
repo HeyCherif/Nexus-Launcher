@@ -64,7 +64,7 @@ try {
   await page.evaluate(() => { window.qaButtons[13].pressed = false; });
   assert.equal(await slider.evaluate(el => el === document.activeElement), false, 'controller Down leaves slider');
   await page.keyboard.press('Tab'); assert.notEqual(await page.evaluate(() => document.activeElement?.tagName), 'BODY');
-  const routes = [['/search', '.search-screen'], ['/downloads', '.downloads-screen'], ['/library', '.library-screen'], ['/settings', '.settings-screen'], ['/', '.home-screen']];
+  const routes = [['/search', '.search-screen'], ['/extensions', '.extensions-screen'], ['/library', '.library-screen'], ['/settings', '.settings-screen'], ['/', '.home-screen']];
   for (const width of [1920, 640]) {
     await page.setViewportSize({ width, height: width === 640 ? 720 : 1080 });
     for (const [path, screen] of routes) {

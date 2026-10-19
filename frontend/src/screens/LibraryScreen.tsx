@@ -74,7 +74,7 @@ export function LibraryScreen() {
     {busy || message ? <p className="library-feedback" role="status">{busy ? t('library.importing') : message}</p> : null}
     <div className="library-stage">
       <div className="library-showcase" aria-label={t('library.title')}>
-        {visibleGames.map(game => <button className="library-entry" key={game.id} data-active={game.id === activeGame?.id} data-launch-game={game.installed ? game.id : undefined} title={t('action.holdToPlay')} onClick={() => { focusGame(game.id); navigate(`/game/${game.id}`); }} onFocus={() => focusGame(game.id)} onMouseEnter={() => previewGame(game.id)} onMouseLeave={endPreview} type="button">
+        {visibleGames.map(game => <button className="library-entry" key={game.id} data-active={game.id === activeGame?.id} data-placeholder={game.artwork.includes('/assets/brand/nexus-mark')} data-launch-game={game.installed ? game.id : undefined} title={t('action.holdToPlay')} onClick={() => { focusGame(game.id); navigate(`/game/${game.id}`); }} onFocus={() => focusGame(game.id)} onMouseEnter={() => previewGame(game.id)} onMouseLeave={endPreview} type="button">
           <img src={game.artwork} alt="" loading="lazy" decoding="async" onError={event => applyImageFallback(event, [...(game.artworkFallbacks || []), game.heroArtwork])} /><span className="library-entry__shade" />{favoriteIds.includes(game.id)?<span className="library-entry__favorite" aria-label={locale==='fr'?'Favori':'Favorite'}><Star size={18} weight="fill"/></span>:null}
           <span className="library-entry__copy"><strong>{game.title}</strong><small><span>{game.source}</span><span data-ready={game.installed}>{t(game.installed ? 'status.ready' : 'status.configure')}</span></small></span>
         </button>)}

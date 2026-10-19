@@ -1,7 +1,7 @@
 import test from "node:test";
 import assert from "node:assert/strict";
 import { EventEmitter } from "node:events";
-import { mkdtemp, mkdir, readFile, realpath, stat, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, realpath, rm, stat, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { dirname, join } from "node:path";
 import { LibraryRegistry, titleFromExecutable } from "../backend/libraryRegistry.mjs";
@@ -134,6 +134,64 @@ test("store rediscovery upgrades an existing automatic source with launch metada
   await registry.syncAutoSources([{ path: folder, title: "Existing Steam Game", platform: "Steam", storeId: "987" }]);
   await registry.syncAutoSources([{ path: folder, title: "Existing Steam Game", platform: "Steam", storeId: "987", launch: { provider: "steam", appId: "987" } }]);
   assert.deepEqual(registry.snapshot().roots[0].launch, { provider: "steam", appId: "987" });
+});
+
+test("store rediscovery removes automatic sources whose installation folder disappeared", async () => {
+  const profile = await mkdtemp(join(tmpdir(), "nexus-registry-"));
+  const removed = join(profile, "Removed Steam Game");
+  const current = join(profile, "Current Steam Game");
+  await mkdir(removed); await mkdir(current);
+  const registry = new LibraryRegistry(profile, async (root) => ({ games: [{ title: "Game", folderPath: root }] }));
+  await registry.load();
+  await registry.syncAutoSources([
+    { path: removed, title: "Removed", platform: "Steam", storeId: "111" },
+    { path: current, title: "Current", platform: "Steam", storeId: "222" },
+  ]);
+  await rm(removed, { recursive: true });
+  await registry.syncAutoSources([{ path: current, title: "Current", platform: "Steam", storeId: "222" }]);
+  assert.deepEqual(registry.snapshot().roots.map((root) => root.path), [await realpath(current)]);
+});
+
+test("a folder containing several game folders is repaired from game to collection", async () => {
+  const profile = await mkdtemp(join(tmpdir(), "nexus-registry-"));
+  const collection = join(profile, "Games");
+  for (const name of ["Alpha", "Beta"]) {
+    const game = join(collection, name, "Binaries");
+    await mkdir(game, { recursive: true });
+    await writeFile(join(game, `${name}.exe`), "game");
+  }
+  const calls = [];
+  const registry = new LibraryRegistry(profile, async (root, _force, direct) => {
+    calls.push({ root, direct });
+    return { games: direct ? [{ title: "Games", folderPath: root }] : [
+      { title: "Alpha", folderPath: join(root, "Alpha") },
+      { title: "Beta", folderPath: join(root, "Beta") },
+    ] };
+  });
+  await registry.load();
+  const result = await registry.addFolder(collection, "game");
+  assert.equal(result.roots[0].kind, "collection");
+  assert.equal(calls.at(-1).direct, false);
+  assert.deepEqual(result.games.map((game) => game.title), ["Alpha", "Beta"]);
+});
+
+test("a manual executable inside a scanned game refines that game without creating a duplicate", async () => {
+  const profile = await mkdtemp(join(tmpdir(), "nexus-registry-"));
+  const collection = join(profile, "Games");
+  const gameFolder = join(collection, "Alpha");
+  const executable = join(gameFolder, "Binaries", "Alpha.exe");
+  await mkdir(dirname(executable), { recursive: true });
+  await writeFile(executable, "game");
+  const registry = new LibraryRegistry(profile, async (root, _force, direct) => ({ games: direct
+    ? [{ title: "Alpha", folderPath: root }]
+    : [{ title: "Alpha", folderPath: gameFolder, executablePath: executable }]
+  }));
+  await registry.load();
+  await registry.addFolder(collection, "collection");
+  const result = await registry.addExecutable(executable);
+  assert.equal(result.games.length, 1);
+  assert.equal(result.games[0].folderPath, gameFolder);
+  assert.equal(result.games[0].executablePath, executable);
 });
 
 test("launch only resolves scanned game IDs and explicitly registered executables", async () => {

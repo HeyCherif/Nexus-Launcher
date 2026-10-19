@@ -9,6 +9,7 @@ test('folder scan rejects crash and bypass helpers before choosing the playable 
     const root=join(dir,'God of War Ragnarok');
     await mkdir(join(root,'Game','Binaries','Win64'),{recursive:true});
     await writeFile(join(root,'crs-handler.exe'),'crash helper');
+    await writeFile(join(root,'crs-uploader.exe'),'crash uploader');
     await writeFile(join(root,'bypass.exe'),'bypass helper');
     const playable=join(root,'Game','Binaries','Win64','GoWR.exe');
     await writeFile(playable,Buffer.alloc(4096));
