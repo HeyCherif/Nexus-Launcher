@@ -3,16 +3,13 @@ import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
 import { EPIC_CLIENT, GOG_CLIENT, GOG_REDIRECT, validateProvider } from './storeLogin.mjs';
 
-// Public desktop OAuth client credentials used by Legendary and GOGDL; account tokens remain encrypted.
-// Protocol references: https://github.com/legendary-gl/legendary/blob/master/legendary/api/egs.py
-// https://github.com/Heroic-Games-Launcher/heroic-gogdl/blob/main/gogdl/auth.py
-// https://github.com/Heroic-Games-Launcher/HeroicGamesLauncher/blob/main/src/backend/storeManagers/gog/library.ts
-const EPIC_BASIC = Buffer.from(`${EPIC_CLIENT}:daafbccc737745039dffe53d94fc76cf`).toString('base64');
-const GOG_SECRET = '9d85c43b1482497dbbce61f6e4aa173a433796eeae2ca8c5f6129f2dc4de46d9';
+// Distributed builds contain no borrowed OAuth client secrets. Protocol testing
+// can inject test-only clients; production waits for Nexus-owned authorization.
 class StoreRequestError extends Error { constructor(status) { super('Store request failed.'); this.status = status; } }
 export class StoreAccounts {
-  constructor(userData, safeStorage, { fetch = globalThis.fetch, login, openClient = async () => false, now = () => Date.now() } = {}) {
+  constructor(userData, safeStorage, { fetch = globalThis.fetch, login, openClient = async () => false, now = () => Date.now(), oauthClients = {} } = {}) {
     this.root = userData; this.storage = safeStorage; this.fetch = fetch; this.login = login; this.openClient = openClient; this.now = now;
+    this.oauthClients = oauthClients;
     this.epochs = { epic: 0, gog: 0 }; this.queues = {}; this.inflight = {}; this.logins = {}; this.errors = {};
   }
   available() { return this.storage.isEncryptionAvailable() && this.storage.getSelectedStorageBackend?.() !== 'basic_text'; }
@@ -40,6 +37,7 @@ export class StoreAccounts {
   }
   async status(provider) {
     validateProvider(provider);
+    if (!this.oauthClients[provider]?.secret) return { configured: false, storageAvailable: this.available(), connectionAvailable: false, error: 'integration-unavailable' };
     const account = await this.read(provider, 'account');
     return { configured: Boolean(account?.access_token && account?.refresh_token && account?.accountId), storageAvailable: this.available(), ...(account?.displayName ? { displayName: account.displayName } : {}), ...(this.errors[provider] ? { error: this.errors[provider] } : {}) };
   }
@@ -54,11 +52,13 @@ export class StoreAccounts {
     return response.json();
   }
   async token(provider, grant, value, previous) {
+    const secret = this.oauthClients[provider]?.secret;
+    if (!secret) throw Object.assign(new Error('Store authorization unavailable.'), { code: 'integration-unavailable' });
     let data;
     if (provider === 'epic') {
-      data = await this.json('https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token', { method: 'POST', headers: { Authorization: `Basic ${EPIC_BASIC}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: grant, [grant === 'refresh_token' ? 'refresh_token' : 'code']: value, token_type: 'eg1' }).toString() });
+      data = await this.json('https://account-public-service-prod03.ol.epicgames.com/account/api/oauth/token', { method: 'POST', headers: { Authorization: `Basic ${Buffer.from(`${EPIC_CLIENT}:${secret}`).toString('base64')}`, 'Content-Type': 'application/x-www-form-urlencoded' }, body: new URLSearchParams({ grant_type: grant, [grant === 'refresh_token' ? 'refresh_token' : 'code']: value, token_type: 'eg1' }).toString() });
     } else {
-      const params = new URLSearchParams({ client_id: GOG_CLIENT, client_secret: GOG_SECRET, grant_type: grant, ...(grant === 'refresh_token' ? { refresh_token: value } : { code: value, redirect_uri: GOG_REDIRECT }) });
+      const params = new URLSearchParams({ client_id: GOG_CLIENT, client_secret: secret, grant_type: grant, ...(grant === 'refresh_token' ? { refresh_token: value } : { code: value, redirect_uri: GOG_REDIRECT }) });
       data = await this.json(`https://auth.gog.com/token?${params}`);
     }
     const accountId = provider === 'epic' ? data.account_id : data.user_id;
@@ -67,6 +67,7 @@ export class StoreAccounts {
   }
   async connect(provider, parent) {
     validateProvider(provider);
+    if (!this.oauthClients[provider]?.secret) return this.status(provider);
     if (this.logins[provider]) return { ...(await this.status(provider)), error: 'error' };
     if (!this.available()) return { configured: false, storageAvailable: false, error: 'storage-unavailable' };
     let epoch = ++this.epochs[provider];
@@ -140,6 +141,7 @@ export class StoreAccounts {
   }
   async library(provider, force = false) {
     validateProvider(provider);
+    if (!this.oauthClients[provider]?.secret) return { source: provider === 'epic' ? 'Epic' : 'GOG', state: 'unavailable', lastSynced: null, cached: false, games: [] };
     if (this.logins[provider]) return { source: provider === 'epic' ? 'Epic' : 'GOG', state: 'unconfigured', lastSynced: null, cached: false, games: [] };
     if (this.inflight[provider]) return this.inflight[provider];
     const epoch = this.epochs[provider];

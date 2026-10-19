@@ -1,5 +1,9 @@
 # Nexus Launcher V2.5 · Saves & Continuity
 
+Publication 2026-10-19: removal of third-party OAuth client secrets. Steam remains supported; Epic/GOG account sign-in and owned-library sync are unavailable in this release. Installed Epic games can still be discovered/launched and Windows games can be added manually. Includes library reconciliation, collection repair, duplicate prevention and improved launch targets.
+
+Publication du 19/10/2026 : suppression des secrets de clients OAuth tiers. Steam reste pris en charge ; la connexion et la synchronisation des bibliothèques possédées Epic/GOG sont indisponibles dans cette version. La détection et le lancement des jeux Epic installés ainsi que l’ajout manuel restent disponibles. Inclut la réconciliation des sources, la réparation des collections, la fusion des doublons et les corrections de lancement.
+
 ## Français
 
 - Nexus Saves : plugin natif optionnel basé sur la bibliothèque MIT Ludusavi, sans son interface et sans alourdir le launcher avec le moteur.

@@ -18,7 +18,7 @@ test('Epic and GOG open an installed client before Nexus authorization; no clien
 });
 async function setup(t, overrides = {}) {
   const root = await mkdtemp(join(tmpdir(), 'nexus-store-test-')); t.after(() => rm(root, { recursive: true, force: true }));
-  const store = new StoreAccounts(root, storage, { login: async () => 'auth_code123', fetch: async url => {
+  const store = new StoreAccounts(root, storage, { oauthClients: { epic: { secret: 'TEST_ONLY_EPIC' }, gog: { secret: 'TEST_ONLY_GOG' } }, login: async () => 'auth_code123', fetch: async url => {
     if (url.includes('/oauth/token')) return response({ access_token: 'ACCESS', refresh_token: 'REFRESH', account_id: 'user1', displayName: 'Player', expires_in: 3600 });
     if (url.includes('/library/api/public/items?')) return response({ records: [{ appName: 'owned', namespace: 'ns', catalogItemId: 'cat' }, { appName: 'private', namespace: 'ns', catalogItemId: 'private', sandboxType: 'PRIVATE' }], responseMetadata: {} });
     if (url.includes('/bulk/items')) return response({ cat: { title: 'Owned game' } });
@@ -26,6 +26,19 @@ async function setup(t, overrides = {}) {
   }, ...overrides });
   return { store, root };
 }
+
+test('distributed defaults never authorize or refresh Epic/GOG using borrowed client secrets', async t => {
+  const root = await mkdtemp(join(tmpdir(), 'nexus-public-store-'));
+  t.after(() => rm(root, { recursive: true, force: true }));
+  let requests = 0;
+  const store = new StoreAccounts(root, storage, { login: async () => { requests++; }, fetch: async () => { requests++; } });
+  for (const provider of ['epic', 'gog']) {
+    assert.equal((await store.status(provider)).connectionAvailable, false);
+    assert.equal((await store.connect(provider)).error, 'integration-unavailable');
+    assert.equal((await store.library(provider)).state, 'unavailable');
+  }
+  assert.equal(requests, 0);
+});
 
 test('provider validation prevents arbitrary filenames and requests', async t => {
   const { store } = await setup(t);

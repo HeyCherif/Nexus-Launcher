@@ -1,5 +1,7 @@
 export const accountsCopy = {
   fr: {
+    'integration-unavailable':'Connexion au compte indisponible dans cette version. Vos jeux installés restent disponibles dans la bibliothèque.',
+    integrationPending:'Jeux installés uniquement',
     title:'Comptes connectés', subtitle:'Retrouvez vos bibliothèques et votre progression.',
     steam:'Vos jeux et votre progression Steam.', epic:'Bibliothèque possédée Epic. Les succès et les sauvegardes ne sont pas synchronisés.', gog:'Bibliothèque possédée GOG. Les succès et les sauvegardes ne sont pas synchronisés.',
     connect:'Connecter', manage:'Gérer le compte', disconnect:'Déconnecter', sync:'Actualiser', busy:'Connexion en cours…', linked:'Profil Steam relié', connected:'Connecté', notConnected:'Non connecté', desktop:'La connexion aux comptes est disponible dans l’application Windows.', signIn:'Ouvrir la connexion', signInHint:'Launcher installé ouvert, puis autorisation sécurisée dans Nexus.',
@@ -10,6 +12,8 @@ export const accountsCopy = {
     loading:'Chargement de la bibliothèque…', choose:'Choisissez un compte', noResults:'Aucun jeu ne correspond.', close:'Fermer', customize:'Personnaliser', playtime:'Temps joué sur Steam', minutes:'min', settings:'Relier mes comptes', credentials:'Les identifiants sont chiffrés sur cet appareil. Votre mot de passe est saisi sur la page du fournisseur.',
   },
   en: {
+    'integration-unavailable':'Account sign-in is unavailable in this version. Your installed games remain available in the library.',
+    integrationPending:'Installed games only',
     title:'Connected accounts', subtitle:'Find your libraries and your progress.',
     steam:'Your Steam games and progress.', epic:'Owned Epic library. Achievements and saves are not synchronized.', gog:'Owned GOG library. Achievements and saves are not synchronized.',
     connect:'Connect', manage:'Manage account', disconnect:'Disconnect', sync:'Refresh', busy:'Connecting…', linked:'Steam profile linked', connected:'Connected', notConnected:'Not connected', desktop:'Account connections are available in the Windows application.', signIn:'Open sign-in', signInHint:'Opens the installed launcher, then secure authorization in Nexus.',

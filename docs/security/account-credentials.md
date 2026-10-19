@@ -18,9 +18,14 @@ Treat user account data differently:
 - Setup diagnostics are read-only, stay on the device and do not authenticate
   accounts, install companions, open launchers or send hardware telemetry.
 
-Publication was rejected by automatic approval review because the existing OAuth
-constants were classified as private credentials. The constants were checked
-against the existing published commit and the upstream public code. No attempt
-is made to hide, encode, move or indirectly publish the rejected values to bypass
-that decision. Continue development locally; resolve publication approval before
-a later GitHub update or release.
+The earlier publication rejection concerned embedded third-party OAuth client
+secrets. On 2026-10-19 these secrets were removed from distributed source and
+packages, rather than concealed or fetched indirectly. Production has no injected
+OAuth clients: Epic/GOG account sign-in and owned-library sync are explicitly
+unavailable. Installed game discovery and launching remain supported. Steam is
+unchanged. Existing encrypted account files are preserved but not read/refreshed
+through disabled integrations. Protocol tests inject fictional TEST_ONLY clients.
+
+Before publishing, verify that the two previously embedded secret values are
+absent from the packaged app.asar. Future account authorization requires a
+separately reviewed Nexus-owned integration.

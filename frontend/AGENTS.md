@@ -164,7 +164,7 @@ Build app UI in `src/`. Keep `.openai/hosting.json`, `worker/index.js`, `scripts
 
 - Onboarding pairs folder choice with real read-only device and installed launcher checks. Keep unavailable values honest; do not connect accounts, install modules or send hardware telemetry automatically.
 - Preserve the console liquid glass atmosphere, short FR/EN copy, directional opacity/transform motion, and keyboard/controller focus. Game details lead with artwork and launch actions; show real playtime/progress, with technical metadata secondary.
-- Continue locally before another release. Account publishing is deferred while automatic approval review rejects the public upstream client constants; do not bypass that review.
+- Publication remediation (2026-10-19): third-party OAuth client secrets are removed entirely. Distributed builds explicitly disable Epic/GOG account authorization and owned-library sync; installed game discovery/launch and Steam remain available. Do not reintroduce borrowed secrets. Verify app.asar contains neither historical secret before publishing; see docs/security/account-credentials.md.
 
 ## Extensions destination (2026-10-07)
 

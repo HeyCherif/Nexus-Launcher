@@ -10,6 +10,16 @@ const library={source:'Steam',state:'unconfigured',lastSynced:null,cached:false,
 function fixture() {
   window.nexusDesktop={getSteamAccountStatus:vi.fn().mockResolvedValue({configured:false,storageAvailable:true}),getStoreAccountStatus:vi.fn().mockResolvedValue({configured:false,storageAvailable:true}),getSteamLibrary:vi.fn().mockResolvedValue(library),getStoreLibrary:vi.fn().mockResolvedValue({...library,source:'Epic',state:'ready',games:[{id:'owned',title:'Real owned game'}]}),connectStoreAccount:vi.fn().mockResolvedValue({configured:true,storageAvailable:true}),clearStoreAccount:vi.fn().mockResolvedValue({configured:false,storageAvailable:true})} as unknown as NonNullable<Window['nexusDesktop']>;
 }
+
+test('release without provider authorization shows honest disabled account controls',async()=>{
+  fixture();
+  vi.mocked(window.nexusDesktop!.getStoreAccountStatus).mockResolvedValue({configured:false,storageAvailable:true,connectionAvailable:false,error:'integration-unavailable'});
+  render(<MemoryRouter><ConnectedAccounts locale="en"/></MemoryRouter>);
+  await waitFor(()=>expect(screen.getAllByRole('button',{name:'Installed games only'})).toHaveLength(2));
+  for(const button of screen.getAllByRole('button',{name:'Installed games only'}))expect(button.hasAttribute('disabled')).toBe(true);
+  expect(screen.getByRole('button',{name:'Connect Steam'}).hasAttribute('disabled')).toBe(false);
+  expect(window.nexusDesktop!.connectStoreAccount).not.toHaveBeenCalled();
+});
 test.each(['Steam','Epic Games','GOG'])('browser opens %s glass dialog without claiming connection',async provider=>{
   render(<MemoryRouter><ConnectedAccounts locale="en"/></MemoryRouter>);
   const trigger=screen.getByRole('button',{name:`Connect ${provider}`});
