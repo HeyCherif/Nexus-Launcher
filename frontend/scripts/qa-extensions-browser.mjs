@@ -1,0 +1,30 @@
+import {chromium} from 'playwright-core';
+import {mkdirSync,writeFileSync} from 'node:fs';
+const out='artifacts/qa/extensions-browser';mkdirSync(out,{recursive:true});
+const browser=await chromium.launch({executablePath:'C:/Program Files/Google/Chrome/Application/chrome.exe',headless:true});
+const context=await browser.newContext({viewport:{width:1440,height:900},locale:'fr-FR'});
+const page=await context.newPage();const errors=[];page.on('pageerror',error=>errors.push(error.message));
+await page.addInitScript(()=>{localStorage.setItem('nexus.onboarding.complete.v1','true');localStorage.setItem('nexus.locale.v1','fr');});
+const checks=[];
+try{
+ await page.goto('http://127.0.0.1:13294/extensions',{waitUntil:'domcontentloaded'});
+ await page.getByRole('heading',{name:'Extensions',exact:true}).waitFor();
+ await page.getByRole('button',{name:'Sauvegardes',exact:true}).click();
+ await page.getByRole('heading',{name:'Nexus Saves',exact:true}).waitFor();
+ if(await page.getByRole('heading',{name:'Nexus Replay',exact:true}).isVisible())throw Error('Category filter failed');checks.push('Category filter');
+ await page.getByRole('button',{name:'Tout',exact:true}).click();
+ await page.getByRole('searchbox',{name:'Chercher une extension'}).fill('zzzzzz');
+ await page.getByText('Aucune extension trouvée.',{exact:true}).waitFor();
+ await page.getByRole('button',{name:'Tout afficher',exact:true}).click();checks.push('Search and reset');
+ await page.screenshot({path:out+'/extensions.png'});
+ await page.getByRole('button',{name:'Découvrir les offres',exact:true}).click();
+ await page.getByRole('dialog').waitFor();
+ await page.getByRole('dialog').getByRole('button',{name:'Actualiser',exact:true}).waitFor({state:'visible'});
+ await page.waitForFunction(()=>document.querySelector('[role="dialog"] .extension-hub-content')?.getAttribute('aria-busy')==='false',{},{timeout:30000});
+ const offers=await page.getByRole('dialog').locator('.extension-offer-list li').count();
+ const dialogText=await page.getByRole('dialog').innerText();
+ checks.push('Free games dialog opened; '+offers+' real offers');
+ await page.screenshot({path:out+'/free-games.png'});
+ await page.getByRole('dialog').getByRole('button',{name:'Fermer',exact:true}).click();await page.getByRole('dialog').waitFor({state:'hidden'});checks.push('Dialog close');
+ const report={checks,errors,offers,dialogText};writeFileSync(out+'/report.json',JSON.stringify(report,null,2));console.log(JSON.stringify(report,null,2));
+}finally{await browser.close();}
