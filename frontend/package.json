@@ -3,7 +3,7 @@
   "productName": "Nexus Launcher",
   "description": "Cinematic Windows game library and launcher",
   "author": "Nexus Launcher",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "private": true,
   "type": "module",
   "main": "backend/main.mjs",

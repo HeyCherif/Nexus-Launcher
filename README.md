@@ -7,7 +7,7 @@
 **Your PC game library, in one cinematic space.**  
 **Tous vos jeux PC dans un espace cinématique.**
 
-[English](#english) · [Français](#français) · [Download V2.5.0](https://github.com/zamakz641-byte/Nexus-Launcher/releases/tag/v2.5.0)
+[English](#english) · [Français](#français) · [Download V2.5.1](https://github.com/zamakz641-byte/Nexus-Launcher/releases/tag/v2.5.1)
 
 <img src="frontend/docs/screenshots/home.png" alt="Nexus Launcher home screen" width="100%" />
 
@@ -33,7 +33,7 @@ Protect supported game saves with the optional **Nexus Saves** plugin: five full
 
 ### Download and install
 
-1. Open the [V2.5.0 release](https://github.com/zamakz641-byte/Nexus-Launcher/releases/tag/v2.5.0).
+1. Open the [V2.5.1 release](https://github.com/zamakz641-byte/Nexus-Launcher/releases/tag/v2.5.1).
 2. Choose **Setup.exe** for an installer or **Portable.exe** to run without installation. Both are for **Windows x64**.
 3. On first launch, choose your games folder in the native picker, use automatic Steam/Epic discovery, or explicitly set up later. Add more sources in **Settings → Libraries**.
 
@@ -92,7 +92,7 @@ Nexus Launcher est une application Windows pour parcourir et lancer vos jeux dan
 
 ### Télécharger
 
-1. Ouvrez la [release V2.5.0](https://github.com/zamakz641-byte/Nexus-Launcher/releases/tag/v2.5.0).
+1. Ouvrez la [release V2.5.1](https://github.com/zamakz641-byte/Nexus-Launcher/releases/tag/v2.5.1).
 2. Choisissez **Setup.exe** pour l’installation ou **Portable.exe** pour lancer Nexus sans installation. Les deux versions sont pour **Windows x64**.
 3. Au premier démarrage, choisissez le dossier de vos jeux dans l’explorateur. Vous pouvez aussi utiliser Steam/Epic ou configurer plus tard. Ajoutez ensuite des sources dans **Paramètres → Bibliothèques**.
 

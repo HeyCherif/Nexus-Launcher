@@ -1,3 +1,17 @@
+# Nexus Launcher V2.5.1 · Awakening & Reliability
+
+## Français
+- Nouvelle séquence de démarrage Awakening avec passage au menu, saut clavier/manette et image fixe en mouvement réduit.
+- Améliorations des lancements, de la réconciliation des bibliothèques installées et de la conservation des images hors ligne.
+- Connexions de compte Epic/GOG indisponibles dans cette distribution ; les jeux installés restent utilisables.
+- Installation Windows x64 ou version portable. Les exécutables ne sont pas signés.
+
+## English
+- New Awakening startup with transition into Home, keyboard/controller skip and reduced-motion still.
+- Improved launch reliability, installed-library reconciliation and offline artwork persistence.
+- Epic/GOG account sign-in is unavailable in this distribution; installed games remain supported.
+- Windows x64 installer and portable executable. Executables are unsigned.
+
 # Nexus Launcher V2.5 · Saves & Continuity
 
 Publication 2026-10-19: removal of third-party OAuth client secrets. Steam remains supported; Epic/GOG account sign-in and owned-library sync are unavailable in this release. Installed Epic games can still be discovered/launched and Windows games can be added manually. Includes library reconciliation, collection repair, duplicate prevention and improved launch targets.
